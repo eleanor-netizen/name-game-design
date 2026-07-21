@@ -143,20 +143,36 @@ const Game = (() => {
     return [...usedEntries].sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // How many names starting with `letter` (under the active gender filter)
+  // Entries starting with `letter` (under the active gender filter) that
   // could still be accepted right now: the letter's pool minus names already
   // used this round and minus any extraBlockedKeys (e.g. a Name Chain seed
   // blocking itself as an answer).
-  function remainingCount(letter, extraBlockedKeys) {
+  function getAvailableEntries(letter, extraBlockedKeys) {
     const pool = activeLettersPool[letter] || [];
-    let count = 0;
+    const available = [];
     for (const entry of pool) {
       const key = dedupeKey(entry.name.toLowerCase());
       if (usedKeys.has(key)) continue;
       if (extraBlockedKeys && extraBlockedKeys.has(key)) continue;
-      count++;
+      available.push(entry);
     }
-    return count;
+    return available;
+  }
+
+  function remainingCount(letter, extraBlockedKeys) {
+    return getAvailableEntries(letter, extraBlockedKeys).length;
+  }
+
+  // Up to `count` random still-available entries for `letter` -- used to
+  // suggest names the player could have tried when a round ends.
+  function sampleRemaining(letter, extraBlockedKeys, count) {
+    const pool = getAvailableEntries(letter, extraBlockedKeys);
+    const picked = [];
+    for (let i = 0; i < count && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0]);
+    }
+    return picked;
   }
 
   function scoreTotal() {
@@ -174,6 +190,7 @@ const Game = (() => {
     tryAccept,
     getSidebarSorted,
     remainingCount,
+    sampleRemaining,
     dedupeKey,
     scoreTotal,
     get usedEntries() {

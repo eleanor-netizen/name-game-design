@@ -41,6 +41,8 @@
     summaryDuration: document.getElementById('summary-duration'),
     summaryReviewCount: document.getElementById('summary-review-count'),
     summaryReviewList: document.getElementById('summary-review-list'),
+    summaryMissed: document.getElementById('summary-missed'),
+    summaryMissedChips: document.getElementById('summary-missed-chips'),
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
@@ -327,6 +329,34 @@
     el.summaryReviewCount.textContent = byScoreDesc.length ? `(${byScoreDesc.length})` : '';
     el.summaryReviewList.innerHTML = '';
     byScoreDesc.forEach((e) => el.summaryReviewList.appendChild(buildNameListItem(e)));
+
+    // Suggest a few names the player could still have tried for whatever
+    // prompt they were stuck on -- skipped when they won by completing the
+    // whole alphabet (nothing was missed). Naturally comes up empty (and
+    // stays hidden) for an exhausted pool, since nothing was left to try.
+    let missedLetter = null;
+    let missedBlockedKeys = null;
+    if (options.reason !== 'reachedZ') {
+      if (currentMode === 'blitz') {
+        missedLetter = blitzLetter;
+      } else if (chain && chain.currentBlankIndex < chain.blanks.length) {
+        missedLetter = chain.blanks[chain.currentBlankIndex].letter;
+        missedBlockedKeys = chain.blockedKeys;
+      }
+    }
+    const missed = missedLetter ? Game.sampleRemaining(missedLetter, missedBlockedKeys, 3) : [];
+    if (missed.length > 0) {
+      el.summaryMissedChips.innerHTML = '';
+      missed.forEach((e) => {
+        const chip = document.createElement('span');
+        chip.className = 'round-chip ' + Game.tierClass(e.rank);
+        chip.textContent = e.name;
+        el.summaryMissedChips.appendChild(chip);
+      });
+      el.summaryMissed.classList.remove('hidden');
+    } else {
+      el.summaryMissed.classList.add('hidden');
+    }
 
     const entry = {
       playerName: currentPlayerName,

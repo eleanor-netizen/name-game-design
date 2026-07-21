@@ -521,6 +521,22 @@ h1 {
   max-height: 220px;
 }
 
+.summary-missed {
+  text-align: left;
+  margin: 4px 0 20px;
+}
+
+.summary-missed h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.missed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .summary-stats {
   display: flex;
   flex-wrap: wrap;
