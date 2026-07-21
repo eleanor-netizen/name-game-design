@@ -344,7 +344,7 @@
         missedBlockedKeys = chain.blockedKeys;
       }
     }
-    const missed = missedLetter ? Game.sampleRemaining(missedLetter, missedBlockedKeys, 3) : [];
+    const missed = missedLetter ? Game.sampleRemainingByTier(missedLetter, missedBlockedKeys) : [];
     if (missed.length > 0) {
       el.summaryMissedChips.innerHTML = '';
       missed.forEach((e) => {

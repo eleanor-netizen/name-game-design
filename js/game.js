@@ -163,15 +163,22 @@ const Game = (() => {
     return getAvailableEntries(letter, extraBlockedKeys).length;
   }
 
-  // Up to `count` random still-available entries for `letter` -- used to
-  // suggest names the player could have tried when a round ends.
-  function sampleRemaining(letter, extraBlockedKeys, count) {
-    const pool = getAvailableEntries(letter, extraBlockedKeys);
+  // One random still-available entry per rarity tier (1x-4x) for `letter`,
+  // in tier order -- used to suggest names the player could have tried when
+  // a round ends. Tiers with nothing available are simply omitted, so this
+  // returns up to 4 entries, not always exactly 4.
+  function sampleRemainingByTier(letter, extraBlockedKeys) {
+    const available = getAvailableEntries(letter, extraBlockedKeys);
+    const byTier = { 1: [], 2: [], 3: [], 4: [] };
+    available.forEach((entry) => byTier[getMultiplier(entry.rank)].push(entry));
+
     const picked = [];
-    for (let i = 0; i < count && pool.length > 0; i++) {
-      const idx = Math.floor(Math.random() * pool.length);
-      picked.push(pool.splice(idx, 1)[0]);
-    }
+    [1, 2, 3, 4].forEach((tier) => {
+      const group = byTier[tier];
+      if (group.length > 0) {
+        picked.push(group[Math.floor(Math.random() * group.length)]);
+      }
+    });
     return picked;
   }
 
@@ -190,7 +197,7 @@ const Game = (() => {
     tryAccept,
     getSidebarSorted,
     remainingCount,
-    sampleRemaining,
+    sampleRemainingByTier,
     dedupeKey,
     scoreTotal,
     get usedEntries() {
