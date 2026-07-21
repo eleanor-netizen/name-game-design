@@ -653,6 +653,123 @@ h1 {
   padding: 40px 0;
 }
 
+/* ---------- Achievements ---------- */
+
+.achievements-progress {
+  color: var(--text-dim);
+  margin: 0 0 20px;
+}
+
+.achievements-categories {
+  text-align: left;
+  max-height: 520px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+  padding-right: 4px;
+}
+
+.achievement-category {
+  margin-bottom: 22px;
+}
+
+.achievement-category h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin: 0 0 10px;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.achievement-card {
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--bg);
+}
+
+.achievement-card.unlocked {
+  border-color: var(--accent);
+  background: #eef2ff;
+}
+
+.achievement-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  filter: grayscale(100%);
+  opacity: 0.35;
+  flex-shrink: 0;
+}
+
+.achievement-card.unlocked .achievement-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.achievement-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.achievement-desc {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.achievement-card:not(.unlocked) .achievement-title {
+  color: var(--text-dim);
+}
+
+.achievement-date {
+  font-size: 0.68rem;
+  color: var(--accent-dark);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.achievement-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-dark);
+  color: white;
+  padding: 14px 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  text-align: center;
+  max-width: 90vw;
+  animation: toast-in 0.35s ease;
+}
+
+.achievement-toast .toast-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.achievement-toast .toast-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+@keyframes toast-in {
+  from { transform: translateX(-50%) translateY(-16px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 720px) {

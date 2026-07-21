@@ -5,6 +5,7 @@
     game: document.getElementById('screen-game'),
     summary: document.getElementById('screen-summary'),
     leaderboard: document.getElementById('screen-leaderboard'),
+    achievements: document.getElementById('screen-achievements'),
   };
 
   const el = {
@@ -14,6 +15,7 @@
     genderOptions: document.getElementById('gender-options'),
     startBtn: document.getElementById('start-btn'),
     viewLeaderboardBtn: document.getElementById('view-leaderboard-btn'),
+    viewAchievementsBtn: document.getElementById('view-achievements-btn'),
 
     modeLabel: document.getElementById('mode-label'),
     promptDisplay: document.getElementById('prompt-display'),
@@ -43,6 +45,7 @@
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
+    summaryAchievementsBtn: document.getElementById('summary-achievements-btn'),
 
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
@@ -52,6 +55,11 @@
     lbTable: document.getElementById('lb-table'),
     lbEmpty: document.getElementById('lb-empty'),
     lbBackBtn: document.getElementById('lb-back-btn'),
+
+    achievementsProgress: document.getElementById('achievements-progress'),
+    achievementsCategories: document.getElementById('achievements-categories'),
+    achievementsBackBtn: document.getElementById('achievements-back-btn'),
+    achievementToast: document.getElementById('achievement-toast'),
   };
 
   let selectedMode = 'blitz';
@@ -169,6 +177,15 @@
     showScreen('leaderboard');
   });
   el.lbBackBtn.addEventListener('click', () => showScreen('home'));
+  el.viewAchievementsBtn.addEventListener('click', () => {
+    renderAchievementsScreen();
+    showScreen('achievements');
+  });
+  el.summaryAchievementsBtn.addEventListener('click', () => {
+    renderAchievementsScreen();
+    showScreen('achievements');
+  });
+  el.achievementsBackBtn.addEventListener('click', () => showScreen('home'));
 
   // ---------- Round lifecycle ----------
   // Each Start Game / Play Again begins a brand new play session: score and
@@ -208,6 +225,9 @@
     clearInterval(instantDeathIntervalId);
     el.timerDisplay.classList.remove('low', 'danger');
     el.endRoundBtn.classList.remove('hidden');
+    // Always tracked (not just for untimed/instant-death display) so elapsed
+    // time is available for time-based achievements regardless of timer mode.
+    roundStartTimestamp = Date.now();
 
     if (currentTimerSetting === 'instant-death') {
       // The 5-second countdown only starts once the player submits their
@@ -215,10 +235,8 @@
       el.timerLabel.textContent = 'Get Ready';
       el.timerValue.textContent = '—';
       el.timerDisplay.classList.remove('hidden');
-      roundStartTimestamp = Date.now();
     } else if (currentTimerSetting === 'untimed') {
       el.timerLabel.textContent = 'Time Played';
-      roundStartTimestamp = Date.now();
       el.timerValue.textContent = formatDuration(0);
       el.timerDisplay.classList.remove('hidden');
       timerIntervalId = setInterval(tickStopwatch, 1000);
@@ -330,6 +348,8 @@
       el.summaryMissed.classList.add('hidden');
     }
 
+    const elapsedSeconds = Math.floor((Date.now() - roundStartTimestamp) / 1000);
+
     const entry = {
       playerName: currentPlayerName,
       mode: currentMode,
@@ -348,13 +368,23 @@
       entry.lettersThruIndex = chainAbsoluteIndex;
     }
     if (currentTimerSetting === 'untimed' || currentTimerSetting === 'instant-death') {
-      entry.durationSeconds = Math.floor((Date.now() - roundStartTimestamp) / 1000);
-      el.summaryDuration.textContent = formatDuration(entry.durationSeconds);
+      entry.durationSeconds = elapsedSeconds;
+      el.summaryDuration.textContent = formatDuration(elapsedSeconds);
       el.summaryDurationStat.classList.remove('hidden');
     } else {
       el.summaryDurationStat.classList.add('hidden');
     }
     Leaderboard.addEntry(entry);
+
+    const { newlyUnlocked } = Achievements.recordRound({
+      mode: currentMode,
+      timer: currentTimerSetting,
+      reason: options.reason || 'manual',
+      score: roundScore,
+      roundEntries,
+      durationSeconds: elapsedSeconds,
+    });
+    if (newlyUnlocked.length > 0) showAchievementToast(newlyUnlocked);
 
     showScreen('summary');
   }
@@ -645,5 +675,94 @@
 
     el.lbTable.classList.toggle('hidden', sorted.length === 0);
     el.lbEmpty.classList.toggle('hidden', sorted.length !== 0);
+  }
+
+  // ---------- Achievements ----------
+
+  let achievementToastTimeoutId = null;
+
+  function showAchievementToast(badges) {
+    clearTimeout(achievementToastTimeoutId);
+    el.achievementToast.innerHTML = '';
+
+    const label = document.createElement('div');
+    label.className = 'toast-label';
+    label.textContent = badges.length > 1 ? `${badges.length} Achievements Unlocked!` : 'Achievement Unlocked!';
+    el.achievementToast.appendChild(label);
+
+    const title = document.createElement('div');
+    title.className = 'toast-title';
+    title.textContent = badges.map((b) => `${b.icon} ${b.title}`).join('   ·   ');
+    el.achievementToast.appendChild(title);
+
+    el.achievementToast.classList.remove('hidden');
+    achievementToastTimeoutId = setTimeout(() => {
+      el.achievementToast.classList.add('hidden');
+    }, 4500);
+  }
+
+  function renderAchievementsScreen() {
+    const { unlocked } = Achievements.getProgress();
+    const total = Achievements.BADGES.length;
+    const earnedCount = Achievements.BADGES.filter((b) => unlocked[b.id]).length;
+    el.achievementsProgress.textContent = `${earnedCount} / ${total} earned`;
+
+    const categories = [];
+    Achievements.BADGES.forEach((badge) => {
+      let cat = categories.find((c) => c.name === badge.category);
+      if (!cat) {
+        cat = { name: badge.category, badges: [] };
+        categories.push(cat);
+      }
+      cat.badges.push(badge);
+    });
+
+    el.achievementsCategories.innerHTML = '';
+    categories.forEach((cat) => {
+      const section = document.createElement('div');
+      section.className = 'achievement-category';
+
+      const heading = document.createElement('h3');
+      heading.textContent = cat.name;
+      section.appendChild(heading);
+
+      const grid = document.createElement('div');
+      grid.className = 'achievement-grid';
+
+      cat.badges.forEach((badge) => {
+        const unlockedAt = unlocked[badge.id];
+        const card = document.createElement('div');
+        card.className = 'achievement-card' + (unlockedAt ? ' unlocked' : '');
+
+        const icon = document.createElement('span');
+        icon.className = 'achievement-icon';
+        icon.textContent = badge.icon;
+        card.appendChild(icon);
+
+        const text = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'achievement-title';
+        title.textContent = badge.title;
+        text.appendChild(title);
+
+        const desc = document.createElement('div');
+        desc.className = 'achievement-desc';
+        desc.textContent = badge.desc;
+        text.appendChild(desc);
+
+        if (unlockedAt) {
+          const date = document.createElement('div');
+          date.className = 'achievement-date';
+          date.textContent = 'Earned ' + new Date(unlockedAt).toLocaleDateString();
+          text.appendChild(date);
+        }
+
+        card.appendChild(text);
+        grid.appendChild(card);
+      });
+
+      section.appendChild(grid);
+      el.achievementsCategories.appendChild(section);
+    });
   }
 })();
