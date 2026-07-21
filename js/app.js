@@ -42,6 +42,10 @@
     summaryReviewList: document.getElementById('summary-review-list'),
     summaryMissed: document.getElementById('summary-missed'),
     summaryMissedChips: document.getElementById('summary-missed-chips'),
+    achievementBanner: document.getElementById('achievement-banner'),
+    achievementBannerLabel: document.getElementById('achievement-banner-label'),
+    achievementBannerTitle: document.getElementById('achievement-banner-title'),
+    achievementBannerBtn: document.getElementById('achievement-banner-btn'),
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
@@ -59,7 +63,6 @@
     achievementsProgress: document.getElementById('achievements-progress'),
     achievementsCategories: document.getElementById('achievements-categories'),
     achievementsBackBtn: document.getElementById('achievements-back-btn'),
-    achievementToast: document.getElementById('achievement-toast'),
   };
 
   let selectedMode = 'blitz';
@@ -186,6 +189,10 @@
     showScreen('achievements');
   });
   el.achievementsBackBtn.addEventListener('click', () => showScreen('home'));
+  el.achievementBannerBtn.addEventListener('click', () => {
+    renderAchievementsScreen();
+    showScreen('achievements');
+  });
 
   // ---------- Round lifecycle ----------
   // Each Start Game / Play Again begins a brand new play session: score and
@@ -384,7 +391,14 @@
       roundEntries,
       durationSeconds: elapsedSeconds,
     });
-    if (newlyUnlocked.length > 0) showAchievementToast(newlyUnlocked);
+    if (newlyUnlocked.length > 0) {
+      el.achievementBannerLabel.textContent =
+        newlyUnlocked.length > 1 ? `${newlyUnlocked.length} Achievements Unlocked!` : 'Achievement Unlocked!';
+      el.achievementBannerTitle.textContent = newlyUnlocked.map((b) => `${b.icon} ${b.title}`).join('   ·   ');
+      el.achievementBanner.classList.remove('hidden');
+    } else {
+      el.achievementBanner.classList.add('hidden');
+    }
 
     showScreen('summary');
   }
@@ -678,28 +692,6 @@
   }
 
   // ---------- Achievements ----------
-
-  let achievementToastTimeoutId = null;
-
-  function showAchievementToast(badges) {
-    clearTimeout(achievementToastTimeoutId);
-    el.achievementToast.innerHTML = '';
-
-    const label = document.createElement('div');
-    label.className = 'toast-label';
-    label.textContent = badges.length > 1 ? `${badges.length} Achievements Unlocked!` : 'Achievement Unlocked!';
-    el.achievementToast.appendChild(label);
-
-    const title = document.createElement('div');
-    title.className = 'toast-title';
-    title.textContent = badges.map((b) => `${b.icon} ${b.title}`).join('   ·   ');
-    el.achievementToast.appendChild(title);
-
-    el.achievementToast.classList.remove('hidden');
-    achievementToastTimeoutId = setTimeout(() => {
-      el.achievementToast.classList.add('hidden');
-    }, 4500);
-  }
 
   function renderAchievementsScreen() {
     const { unlocked } = Achievements.getProgress();
