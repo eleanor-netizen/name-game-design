@@ -77,9 +77,8 @@
 
   let blitzLetter = null;
 
-  // Non-wrapping seed counter for Name Chain: chainAbsoluteIndex % 26 gives the
-  // actual letter used for game logic, while the raw value lets us report how
-  // far through the alphabet (potentially past one lap) a session got.
+  // Name Chain's current seed letter as an index (0=A ... 25=Z). Reaching Z
+  // ends the round rather than wrapping, so this only ever counts up to 25.
   let chainAbsoluteIndex = 0;
   let chain = null; // { seedEntry, blanks: [{letter, filled, filledName}], currentBlankIndex, blockedKeys }
 
@@ -369,9 +368,10 @@
     if (currentMode === 'blitz') {
       entry.startLetter = blitzLetter;
     } else {
-      const laps = Math.floor(chainAbsoluteIndex / 26);
-      const letter = String.fromCharCode(65 + (chainAbsoluteIndex % 26));
-      entry.lettersThru = laps > 0 ? `A thru ${letter} (lap ${laps + 1})` : `A thru ${letter}`;
+      // chainAbsoluteIndex is always 0-25 (A-Z): reaching Z ends the round
+      // immediately rather than wrapping, so there's never more than one lap.
+      const letter = String.fromCharCode(65 + chainAbsoluteIndex);
+      entry.lettersThru = `A thru ${letter}`;
       entry.lettersThruIndex = chainAbsoluteIndex;
     }
     if (currentTimerSetting === 'untimed' || currentTimerSetting === 'instant-death') {
@@ -401,7 +401,7 @@
   // Returns true if starting this seed immediately ended the round (its first
   // blank's pool was already exhausted -- a pathological edge case).
   function startNewChainSeed() {
-    const letter = String.fromCharCode(65 + (chainAbsoluteIndex % 26));
+    const letter = String.fromCharCode(65 + chainAbsoluteIndex);
     const seedEntry = Game.pickSeedName(letter);
     const blanks = seedEntry.name
       .toUpperCase()
@@ -471,14 +471,14 @@
         renderChainPrompt(); // always show the fill immediately, even on the seed's last blank
 
         if (chain.currentBlankIndex >= chain.blanks.length) {
-          const completedLetterIndex = chainAbsoluteIndex % 26;
-          chainAbsoluteIndex++;
-          if (completedLetterIndex === 25) {
+          if (chainAbsoluteIndex === 25) {
             // Just completed the "Z" seed: the round ends here, it does not
-            // wrap back around to "A".
+            // wrap back around to "A". Leave chainAbsoluteIndex at 25 (Z) so
+            // the leaderboard/summary correctly report "A thru Z".
             clearInterval(instantDeathIntervalId);
             setTimeout(() => endRound({ reason: 'reachedZ' }), 550);
           } else {
+            chainAbsoluteIndex++;
             if (instantDeath) startInstantDeathCountdown();
             setTimeout(startNewChainSeed, 550);
           }
