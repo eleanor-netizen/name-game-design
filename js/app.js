@@ -10,9 +10,6 @@
   const el = {
     playerNameInput: document.getElementById('player-name-input'),
     modeOptions: document.getElementById('mode-options'),
-    chainStyleGroup: document.getElementById('chain-style-group'),
-    chainStyleOptions: document.getElementById('chain-style-options'),
-    timerGroup: document.getElementById('timer-group'),
     timerOptions: document.getElementById('timer-options'),
     genderOptions: document.getElementById('gender-options'),
     startBtn: document.getElementById('start-btn'),
@@ -49,7 +46,6 @@
 
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
-    lbTimerInstantDeath: document.getElementById('lb-timer-instant-death'),
     lbGenderFilter: document.getElementById('lb-gender-filter'),
     lbTableHead: document.getElementById('lb-table-head'),
     lbTableBody: document.getElementById('lb-table-body'),
@@ -61,11 +57,9 @@
   let selectedMode = 'blitz';
   let selectedTimer = 'untimed';
   let selectedGender = 'all';
-  let selectedChainStyle = 'normal';
 
   let currentMode = null;
   let currentTimerSetting = 'untimed';
-  let currentChainStyle = 'normal';
   let currentGenderFilter = 'all';
   let currentPlayerName = 'Anonymous';
   let timerRemaining = 0;
@@ -142,29 +136,11 @@
 
   // ---------- Home screen option toggles ----------
 
-  // Chain Style only applies to Name Chain, and Instant Death replaces the
-  // Timer picker with its own pacing rules, so both toggle visibility here.
-  function updateHomeOptionVisibility() {
-    const isChain = selectedMode === 'chain';
-    el.chainStyleGroup.classList.toggle('hidden', !isChain);
-    const instantDeathActive = isChain && selectedChainStyle === 'instant-death';
-    el.timerGroup.classList.toggle('hidden', instantDeathActive);
-  }
-
   el.modeOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.option-btn');
     if (!btn) return;
     selectedMode = btn.dataset.mode;
     [...el.modeOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
-    updateHomeOptionVisibility();
-  });
-
-  el.chainStyleOptions.addEventListener('click', (e) => {
-    const btn = e.target.closest('.option-btn');
-    if (!btn) return;
-    selectedChainStyle = btn.dataset.chainStyle;
-    [...el.chainStyleOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
-    updateHomeOptionVisibility();
   });
 
   el.timerOptions.addEventListener('click', (e) => {
@@ -181,10 +157,8 @@
     [...el.genderOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
 
-  el.startBtn.addEventListener('click', () =>
-    startGame(selectedMode, selectedTimer, selectedMode === 'chain' ? selectedChainStyle : 'normal')
-  );
-  el.playAgainBtn.addEventListener('click', () => startGame(currentMode, currentTimerSetting, currentChainStyle));
+  el.startBtn.addEventListener('click', () => startGame(selectedMode, selectedTimer));
+  el.playAgainBtn.addEventListener('click', () => startGame(currentMode, currentTimerSetting));
   el.changeModeBtn.addEventListener('click', () => showScreen('home'));
   el.viewLeaderboardBtn.addEventListener('click', () => {
     renderLeaderboardTable();
@@ -201,10 +175,9 @@
   // the used-names list both reset, so previously-used names become
   // available again.
 
-  function startGame(mode, timerSetting, chainStyle) {
+  function startGame(mode, timerSetting) {
     currentMode = mode;
-    currentChainStyle = mode === 'chain' ? chainStyle : 'normal';
-    currentTimerSetting = currentChainStyle === 'instant-death' ? 'instant-death' : timerSetting;
+    currentTimerSetting = timerSetting;
     currentGenderFilter = selectedGender;
     currentPlayerName = el.playerNameInput.value.trim() || 'Anonymous';
     Leaderboard.setPlayerName(currentPlayerName);
@@ -236,7 +209,7 @@
     el.timerDisplay.classList.remove('low', 'danger');
     el.endRoundBtn.classList.remove('hidden');
 
-    if (currentChainStyle === 'instant-death') {
+    if (currentTimerSetting === 'instant-death') {
       // The 5-second countdown only starts once the player submits their
       // first name; total elapsed time is still tracked for the leaderboard.
       el.timerLabel.textContent = 'Get Ready';
@@ -449,11 +422,17 @@
     el.nameInput.value = '';
     if (!raw.trim()) return;
 
+    const instantDeath = currentTimerSetting === 'instant-death';
+
     if (currentMode === 'blitz') {
       const result = Game.tryAccept(raw, blitzLetter);
       if (result.ok) {
         acceptName(result.record);
         if (checkRemainingOrEnd(blitzLetter)) return; // no names left for this letter -- round over
+        if (instantDeath) startInstantDeathCountdown();
+      } else if (instantDeath) {
+        clearInterval(instantDeathIntervalId);
+        endRound({ reason: 'lost' });
       } else {
         rejectFeedback(raw, result.reason);
       }
@@ -461,7 +440,6 @@
       if (!chain || chain.currentBlankIndex >= chain.blanks.length) return; // between seeds, ignore
       const requiredLetter = chain.blanks[chain.currentBlankIndex].letter;
       const result = Game.tryAccept(raw, requiredLetter, chain.blockedKeys);
-      const instantDeath = currentChainStyle === 'instant-death';
 
       if (result.ok) {
         chain.blanks[chain.currentBlankIndex].filled = true;
@@ -578,7 +556,7 @@
     }
     columns.push({ key: 'namesCount', label: 'Names Found', sortable: true, defaultDir: 'desc' });
     // Untimed and Instant Death are both variable-length: their duration is
-    // worth showing. 60s/90s boards have a fixed, implied duration.
+    // worth showing. The 60s board has a fixed, implied duration.
     if (timer === 'untimed' || timer === 'instant-death') {
       columns.push({
         key: 'durationSeconds',
@@ -602,12 +580,6 @@
     if (!btn) return;
     lbMode = btn.dataset.lbMode;
     [...el.lbModeTabs.children].forEach((c) => c.classList.toggle('selected', c === btn));
-    // Instant Death is a Name Chain-only mode, so its board only makes sense there.
-    el.lbTimerInstantDeath.classList.toggle('hidden', lbMode !== 'chain');
-    if (lbMode !== 'chain' && lbTimer === 'instant-death') {
-      lbTimer = 'untimed';
-      [...el.lbTimerTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbTimer === 'untimed'));
-    }
     lbSortKey = 'score';
     lbSortDir = 'desc';
     renderLeaderboardTable();

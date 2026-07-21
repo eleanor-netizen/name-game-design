@@ -117,7 +117,7 @@ h1 {
   background: #eef2ff;
 }
 
-.option-btn[data-chain-style="instant-death"].selected {
+.option-btn[data-timer="instant-death"].selected {
   border-color: var(--danger);
   background: #fef2f2;
 }
