@@ -1,5 +1,5 @@
 // Core game engine: name validation, scoring, dedupe, and letter/seed helpers.
-// Depends on NAMES_DATA and VARIANTS_DATA (loaded via <script> before this file).
+// Depends on NAMES_DATA (loaded via <script> before this file).
 //
 // A "session" here is a single play (one Start Game / Play Again click) of one
 // mode: score and used-name tracking are scoped to it and reset every time a
@@ -47,8 +47,10 @@ const Game = (() => {
     activeLettersPool = filteredLetters;
   }
 
+  // Dedupe is exact-match only: spelling variants (e.g. Brian / Bryan) are
+  // treated as distinct names and can both be accepted in the same game.
   function dedupeKey(lower) {
-    return VARIANTS_DATA[lower] || lower;
+    return lower;
   }
 
   function getMultiplier(rank) {

@@ -16,6 +16,18 @@
       <p class="tagline">How many names can you find?</p>
 
       <div class="option-group">
+        <h2>Your Name</h2>
+        <input
+          type="text"
+          id="player-name-input"
+          class="text-input"
+          maxlength="24"
+          autocomplete="off"
+          placeholder="Anonymous"
+        />
+      </div>
+
+      <div class="option-group">
         <h2>Mode</h2>
         <div class="option-row" id="mode-options">
           <button type="button" class="option-btn selected" data-mode="blitz">
@@ -48,6 +60,7 @@
       </div>
 
       <button id="start-btn" class="primary-btn">Start Game</button>
+      <button id="view-leaderboard-btn" class="secondary-btn">View Leaderboard</button>
     </div>
   </section>
 
@@ -115,14 +128,55 @@
       </div>
       <button id="play-again-btn" class="primary-btn">Play Again</button>
       <button id="change-mode-btn" class="secondary-btn">Change Mode</button>
+      <button id="summary-leaderboard-btn" class="secondary-btn">View Leaderboard</button>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD SCREEN -->
+  <section id="screen-leaderboard" class="screen hidden">
+    <div class="leaderboard-card">
+      <h1>High Scores</h1>
+
+      <div class="option-group">
+        <div class="option-row" id="lb-mode-tabs">
+          <button type="button" class="option-btn selected" data-lb-mode="blitz">Alphabet Blitz</button>
+          <button type="button" class="option-btn" data-lb-mode="chain">Name Chain</button>
+        </div>
+      </div>
+
+      <div class="lb-filters">
+        <div class="option-row lb-tab-row" id="lb-timer-tabs">
+          <button type="button" class="tab-btn selected" data-lb-timer="untimed">Untimed</button>
+          <button type="button" class="tab-btn" data-lb-timer="60">60s</button>
+          <button type="button" class="tab-btn" data-lb-timer="90">90s</button>
+        </div>
+        <div class="option-row lb-tab-row" id="lb-gender-filter">
+          <button type="button" class="tab-btn selected" data-lb-gender="any">Any Name Set</button>
+          <button type="button" class="tab-btn" data-lb-gender="all">All</button>
+          <button type="button" class="tab-btn" data-lb-gender="female">Female</button>
+          <button type="button" class="tab-btn" data-lb-gender="male">Male</button>
+        </div>
+      </div>
+
+      <div class="lb-table-wrap">
+        <table class="lb-table" id="lb-table">
+          <thead>
+            <tr id="lb-table-head"></tr>
+          </thead>
+          <tbody id="lb-table-body"></tbody>
+        </table>
+        <p id="lb-empty" class="lb-empty hidden">No scores yet for this board — be the first!</p>
+      </div>
+
+      <button id="lb-back-btn" class="secondary-btn">Back</button>
     </div>
   </section>
 
 </div>
 
 <script src="data/names-data.js"></script>
-<script src="data/variants-data.js"></script>
 <script src="js/game.js"></script>
+<script src="js/leaderboard.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
