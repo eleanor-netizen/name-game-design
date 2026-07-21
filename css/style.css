@@ -276,7 +276,31 @@ h1 {
 }
 
 .timer-display.low #timer-value { color: var(--danger); }
-.timer-display.danger #timer-value { color: var(--danger); }
+
+.timer-display.instant-death {
+  min-width: 90px;
+}
+
+.timer-display.instant-death #timer-value {
+  display: inline-block;
+  font-size: 2.6rem;
+  animation: id-pulse 0.7s ease-in-out infinite;
+}
+
+.timer-display.instant-death.danger #timer-value {
+  color: var(--danger);
+  animation: id-pulse-urgent 0.35s ease-in-out infinite;
+}
+
+@keyframes id-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+@keyframes id-pulse-urgent {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
 
 .score-display {
   font-size: 0.8rem;

@@ -238,7 +238,7 @@
     if (timerRemaining <= 10) el.timerDisplay.classList.add('low');
     if (timerRemaining <= 0) {
       clearInterval(timerIntervalId);
-      endRound();
+      endRound({ reason: 'timeout' });
     }
   }
 
@@ -254,6 +254,7 @@
     el.timerLabel.textContent = 'Next Name In';
     el.timerValue.textContent = instantDeathRemaining;
     el.timerDisplay.classList.remove('danger');
+    el.timerDisplay.classList.add('instant-death');
     instantDeathIntervalId = setInterval(tickInstantDeathCountdown, 1000);
   }
 
@@ -263,11 +264,18 @@
     if (instantDeathRemaining <= 2) el.timerDisplay.classList.add('danger');
     if (instantDeathRemaining <= 0) {
       clearInterval(instantDeathIntervalId);
-      endRound();
+      endRound({ reason: 'lost' });
     }
   }
 
-  el.endRoundBtn.addEventListener('click', () => endRound());
+  el.endRoundBtn.addEventListener('click', () => endRound({ reason: 'manual' }));
+
+  const SUMMARY_HEADING_BY_REASON = {
+    manual: 'Round Complete',
+    timeout: "Time's Up!",
+    reachedZ: 'Nicely Done!',
+    lost: 'Game Over',
+  };
 
   function endRound(options) {
     options = options || {};
@@ -280,7 +288,7 @@
       if (!rarest || e.rank > rarest.rank) rarest = e;
     });
 
-    el.summaryHeading.textContent = options.reachedZ ? 'Nicely Done!' : 'Round Complete';
+    el.summaryHeading.textContent = SUMMARY_HEADING_BY_REASON[options.reason] || SUMMARY_HEADING_BY_REASON.manual;
     el.summaryCount.textContent = roundEntries.length;
     el.summaryScore.textContent = roundScore;
     el.summaryRarest.textContent = rarest ? rarest.name : '—';
@@ -405,7 +413,7 @@
             // Just completed the "Z" seed: the round ends here, it does not
             // wrap back around to "A".
             clearInterval(instantDeathIntervalId);
-            setTimeout(() => endRound({ reachedZ: true }), 550);
+            setTimeout(() => endRound({ reason: 'reachedZ' }), 550);
           } else {
             if (instantDeath) startInstantDeathCountdown();
             setTimeout(startNewChainSeed, 550);
@@ -415,7 +423,7 @@
         }
       } else if (instantDeath) {
         clearInterval(instantDeathIntervalId);
-        endRound();
+        endRound({ reason: 'lost' });
       } else {
         rejectFeedback(raw, result.reason);
       }
