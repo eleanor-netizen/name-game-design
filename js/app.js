@@ -113,11 +113,15 @@
     return li;
   }
 
+  const REMAINING_NOUN_BY_GENDER = { all: 'name', female: 'female name', male: 'male name' };
+
   // Updates the live "names remaining" readout for `letter` and returns the
   // count, so callers can also check whether the pool has run dry.
   function updateRemainingDisplay(letter, extraBlockedKeys) {
     const remaining = Game.remainingCount(letter, extraBlockedKeys);
-    el.remainingDisplay.textContent = `${remaining} name${remaining === 1 ? '' : 's'} left starting with "${letter}"`;
+    const noun = REMAINING_NOUN_BY_GENDER[currentGenderFilter] || 'name';
+    const plural = remaining === 1 ? noun : noun + 's';
+    el.remainingDisplay.textContent = `${remaining} ${plural} left starting with "${letter}"`;
     return remaining;
   }
 
