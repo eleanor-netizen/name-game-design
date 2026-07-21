@@ -9,16 +9,15 @@
   const el = {
     modeOptions: document.getElementById('mode-options'),
     timerOptions: document.getElementById('timer-options'),
+    genderOptions: document.getElementById('gender-options'),
     startBtn: document.getElementById('start-btn'),
-    sessionSummary: document.getElementById('session-summary'),
-    sessionSummaryText: document.getElementById('session-summary-text'),
-    newSessionBtn: document.getElementById('new-session-btn'),
 
     modeLabel: document.getElementById('mode-label'),
     promptDisplay: document.getElementById('prompt-display'),
     timerDisplay: document.getElementById('timer-display'),
     scoreTotal: document.getElementById('score-total'),
     endRoundBtn: document.getElementById('end-round-btn'),
+    endGameBtn: document.getElementById('end-game-btn'),
     submitForm: document.getElementById('submit-form'),
     nameInput: document.getElementById('name-input'),
     feedbackZone: document.getElementById('feedback-chip-zone'),
@@ -29,16 +28,15 @@
     summaryCount: document.getElementById('summary-count'),
     summaryScore: document.getElementById('summary-score'),
     summaryRarest: document.getElementById('summary-rarest'),
-    summarySessionScore: document.getElementById('summary-session-score'),
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
   };
 
   let selectedMode = 'blitz';
   let selectedTimer = 'untimed';
+  let selectedGender = 'all';
 
   let currentMode = null;
-  let roundStartIndex = 0;
   let timerRemaining = 0;
   let timerIntervalId = null;
 
@@ -68,35 +66,27 @@
     [...el.timerOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
 
-  el.newSessionBtn.addEventListener('click', () => {
-    Game.resetSession();
-    updateHomeSessionSummary();
+  el.genderOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if (!btn) return;
+    selectedGender = btn.dataset.gender;
+    [...el.genderOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
-
-  function updateHomeSessionSummary() {
-    const count = Game.usedEntries.length;
-    if (count === 0) {
-      el.sessionSummary.classList.add('hidden');
-      return;
-    }
-    el.sessionSummary.classList.remove('hidden');
-    el.sessionSummaryText.textContent =
-      `Session so far: ${count} name${count === 1 ? '' : 's'}, ${Game.sessionScoreTotal()} points`;
-  }
 
   el.startBtn.addEventListener('click', () => startGame(selectedMode, selectedTimer));
   el.playAgainBtn.addEventListener('click', () => startGame(currentMode, selectedTimer));
-  el.changeModeBtn.addEventListener('click', () => {
-    updateHomeSessionSummary();
-    showScreen('home');
-  });
+  el.changeModeBtn.addEventListener('click', () => showScreen('home'));
 
   // ---------- Round lifecycle ----------
+  // Each Start Game / Play Again begins a brand new play session: score and
+  // the used-names list both reset, so previously-used names become
+  // available again.
 
   function startGame(mode, timerSetting) {
     currentMode = mode;
-    roundStartIndex = Game.usedEntries.length;
-    el.roundList = document.getElementById('round-list');
+    Game.setGenderFilter(selectedGender);
+    Game.resetSession();
+
     el.roundList.innerHTML = '';
     el.nameInput.value = '';
     el.feedbackZone.innerHTML = '';
@@ -107,7 +97,7 @@
       blitzLetter = Game.randomLetter();
       renderBlitzPrompt();
     } else {
-      chainLetterIndex = Math.floor(Math.random() * 26);
+      chainLetterIndex = 0; // Name Chain always starts its first seed at "A"
       startNewChainSeed();
     }
 
@@ -143,10 +133,15 @@
 
   el.endRoundBtn.addEventListener('click', endRound);
 
+  el.endGameBtn.addEventListener('click', () => {
+    clearInterval(timerIntervalId);
+    showScreen('home');
+  });
+
   function endRound() {
     clearInterval(timerIntervalId);
-    const roundEntries = Game.usedEntries.slice(roundStartIndex);
-    const roundScore = roundEntries.reduce((sum, e) => sum + e.score, 0);
+    const roundEntries = Game.usedEntries;
+    const roundScore = Game.scoreTotal();
     let rarest = null;
     roundEntries.forEach((e) => {
       if (!rarest || e.rank > rarest.rank) rarest = e;
@@ -155,7 +150,6 @@
     el.summaryCount.textContent = roundEntries.length;
     el.summaryScore.textContent = roundScore;
     el.summaryRarest.textContent = rarest ? rarest.name : '—';
-    el.summarySessionScore.textContent = Game.sessionScoreTotal();
 
     showScreen('summary');
   }
@@ -225,7 +219,7 @@
       if (result.ok) {
         acceptFeedback(result.record);
       } else {
-        rejectFeedback(raw);
+        rejectFeedback(raw, result.reason);
       }
     } else {
       const requiredLetter = chain.blanks[chain.currentBlankIndex].letter;
@@ -242,7 +236,7 @@
           renderChainPrompt();
         }
       } else {
-        rejectFeedback(raw);
+        rejectFeedback(raw, result.reason);
       }
     }
   });
@@ -266,10 +260,25 @@
     renderSidebar();
   }
 
-  function rejectFeedback(raw) {
+  const REJECT_REASON_TEXT = {
+    used: 'Name already used',
+    'not-found': 'Name not recognized',
+  };
+
+  function rejectFeedback(raw, reason) {
     const chip = document.createElement('span');
     chip.className = 'feedback-chip reject';
-    chip.textContent = raw.trim();
+
+    const nameLine = document.createElement('span');
+    nameLine.className = 'feedback-name';
+    nameLine.textContent = raw.trim();
+    chip.appendChild(nameLine);
+
+    const reasonLine = document.createElement('span');
+    reasonLine.className = 'feedback-reason';
+    reasonLine.textContent = REJECT_REASON_TEXT[reason] || REJECT_REASON_TEXT['not-found'];
+    chip.appendChild(reasonLine);
+
     el.feedbackZone.innerHTML = '';
     el.feedbackZone.appendChild(chip);
     setTimeout(() => {
@@ -278,7 +287,7 @@
   }
 
   function updateScoreDisplay() {
-    el.scoreTotal.textContent = Game.sessionScoreTotal();
+    el.scoreTotal.textContent = Game.scoreTotal();
   }
 
   function renderSidebar() {
@@ -300,7 +309,4 @@
       el.usedNamesList.appendChild(li);
     });
   }
-
-  // ---------- Init ----------
-  updateHomeSessionSummary();
 })();

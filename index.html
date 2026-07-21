@@ -38,12 +38,16 @@
         </div>
       </div>
 
-      <button id="start-btn" class="primary-btn">Start Game</button>
-
-      <div id="session-summary" class="session-summary hidden">
-        <span id="session-summary-text"></span>
-        <button id="new-session-btn" class="link-btn">Start New Session</button>
+      <div class="option-group">
+        <h2>Name Set</h2>
+        <div class="option-row" id="gender-options">
+          <button type="button" class="option-btn selected" data-gender="all">All</button>
+          <button type="button" class="option-btn" data-gender="female">Female</button>
+          <button type="button" class="option-btn" data-gender="male">Male</button>
+        </div>
       </div>
+
+      <button id="start-btn" class="primary-btn">Start Game</button>
     </div>
   </section>
 
@@ -58,6 +62,7 @@
         <div class="timer-display hidden" id="timer-display">60</div>
         <div class="score-display">Score<br /><span id="score-total">0</span></div>
         <button id="end-round-btn" class="secondary-btn">End Round</button>
+        <button id="end-game-btn" class="secondary-btn danger-btn">End Game</button>
       </div>
     </header>
 
@@ -108,7 +113,6 @@
           <span class="stat-label">Rarest Name</span>
         </div>
       </div>
-      <p class="session-total-line">Session total score: <strong id="summary-session-score">0</strong></p>
       <button id="play-again-btn" class="primary-btn">Play Again</button>
       <button id="change-mode-btn" class="secondary-btn">Change Mode</button>
     </div>

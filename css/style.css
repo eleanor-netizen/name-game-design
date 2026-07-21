@@ -6,12 +6,13 @@
   --accent: #4f46e5;
   --accent-dark: #4338ca;
   --border: #e5e7eb;
-  --tier-1: #9ca3af;
+  --tier-1: #22c55e;
   --tier-2: #3b82f6;
   --tier-3: #8b5cf6;
   --tier-4: #d69e00;
   --green: #22c55e;
   --grey-reject: #a1a1aa;
+  --danger: #dc2626;
   --radius: 12px;
 }
 
@@ -155,27 +156,6 @@ h1 {
 
 .secondary-btn:hover { border-color: var(--accent); }
 
-.link-btn {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  padding: 0;
-}
-
-.session-summary {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 /* ---------- Game screen ---------- */
 
 .game-header {
@@ -256,7 +236,8 @@ h1 {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .timer-display {
@@ -282,10 +263,21 @@ h1 {
   color: var(--text);
 }
 
-#end-round-btn {
+#end-round-btn,
+#end-game-btn {
   width: auto;
   padding: 10px 18px;
   margin: 0;
+}
+
+.danger-btn {
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+.danger-btn:hover {
+  border-color: var(--danger);
+  background: #fef2f2;
 }
 
 .game-body {
@@ -345,7 +337,23 @@ h1 {
 
 .feedback-chip.reject {
   background: var(--grey-reject);
+  border-radius: 14px;
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   animation: shake-reject 0.5s ease, fade-out 0.35s ease 0.45s forwards;
+}
+
+.feedback-chip.reject .feedback-name {
+  font-size: 1rem;
+}
+
+.feedback-chip.reject .feedback-reason {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 @keyframes flash-accept {
@@ -493,11 +501,6 @@ h1 {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.session-total-line {
-  color: var(--text-dim);
-  font-size: 0.9rem;
 }
 
 /* ---------- Responsive ---------- */
