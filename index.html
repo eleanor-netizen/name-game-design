@@ -72,7 +72,10 @@
         <div class="prompt-display" id="prompt-display"></div>
       </div>
       <div class="header-right">
-        <div class="timer-display hidden" id="timer-display">60</div>
+        <div class="timer-display hidden" id="timer-display">
+          <span class="timer-label" id="timer-label">Time Left</span><br />
+          <span id="timer-value">60</span>
+        </div>
         <div class="score-display">Score<br /><span id="score-total">0</span></div>
         <button id="end-round-btn" class="secondary-btn">End Round</button>
         <button id="end-game-btn" class="secondary-btn danger-btn">End Game</button>
@@ -124,6 +127,10 @@
         <div class="stat">
           <span class="stat-value" id="summary-rarest">—</span>
           <span class="stat-label">Rarest Name</span>
+        </div>
+        <div class="stat hidden" id="summary-duration-stat">
+          <span class="stat-value" id="summary-duration">0:00</span>
+          <span class="stat-label">Time Played</span>
         </div>
       </div>
       <button id="play-again-btn" class="primary-btn">Play Again</button>

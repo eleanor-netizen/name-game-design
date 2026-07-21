@@ -254,14 +254,23 @@ h1 {
 }
 
 .timer-display {
-  font-size: 1.6rem;
-  font-weight: 800;
-  min-width: 56px;
+  min-width: 64px;
   text-align: center;
+  line-height: 1.2;
+}
+
+.timer-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+#timer-value {
+  font-size: 1.4rem;
+  font-weight: 800;
   color: var(--accent-dark);
 }
 
-.timer-display.low { color: #dc2626; }
+.timer-display.low #timer-value { color: #dc2626; }
 
 .score-display {
   font-size: 0.8rem;
@@ -475,6 +484,7 @@ h1 {
 
 .summary-stats {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 24px;
   margin: 24px 0;

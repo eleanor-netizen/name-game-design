@@ -18,6 +18,8 @@
     modeLabel: document.getElementById('mode-label'),
     promptDisplay: document.getElementById('prompt-display'),
     timerDisplay: document.getElementById('timer-display'),
+    timerLabel: document.getElementById('timer-label'),
+    timerValue: document.getElementById('timer-value'),
     scoreTotal: document.getElementById('score-total'),
     endRoundBtn: document.getElementById('end-round-btn'),
     endGameBtn: document.getElementById('end-game-btn'),
@@ -31,6 +33,8 @@
     summaryCount: document.getElementById('summary-count'),
     summaryScore: document.getElementById('summary-score'),
     summaryRarest: document.getElementById('summary-rarest'),
+    summaryDurationStat: document.getElementById('summary-duration-stat'),
+    summaryDuration: document.getElementById('summary-duration'),
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
@@ -55,6 +59,7 @@
   let currentPlayerName = 'Anonymous';
   let timerRemaining = 0;
   let timerIntervalId = null;
+  let roundStartTimestamp = 0; // used to clock untimed rounds
 
   let blitzLetter = null;
 
@@ -67,6 +72,15 @@
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.add('hidden'));
     screens[name].classList.remove('hidden');
+  }
+
+  function formatDuration(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 
   el.playerNameInput.value = Leaderboard.getPlayerName();
@@ -139,16 +153,21 @@
     updateScoreDisplay();
     renderSidebar();
 
+    clearInterval(timerIntervalId);
+    el.timerDisplay.classList.remove('low');
     if (timerSetting === 'untimed') {
-      el.timerDisplay.classList.add('hidden');
-      el.endRoundBtn.classList.remove('hidden');
-    } else {
-      timerRemaining = parseInt(timerSetting, 10);
+      el.timerLabel.textContent = 'Time Played';
+      roundStartTimestamp = Date.now();
+      el.timerValue.textContent = formatDuration(0);
       el.timerDisplay.classList.remove('hidden');
-      el.timerDisplay.classList.remove('low');
-      el.timerDisplay.textContent = timerRemaining;
+      el.endRoundBtn.classList.remove('hidden');
+      timerIntervalId = setInterval(tickStopwatch, 1000);
+    } else {
+      el.timerLabel.textContent = 'Time Left';
+      timerRemaining = parseInt(timerSetting, 10);
+      el.timerValue.textContent = timerRemaining;
+      el.timerDisplay.classList.remove('hidden');
       el.endRoundBtn.classList.add('hidden');
-      clearInterval(timerIntervalId);
       timerIntervalId = setInterval(tickTimer, 1000);
     }
 
@@ -158,12 +177,17 @@
 
   function tickTimer() {
     timerRemaining--;
-    el.timerDisplay.textContent = timerRemaining;
+    el.timerValue.textContent = timerRemaining;
     if (timerRemaining <= 10) el.timerDisplay.classList.add('low');
     if (timerRemaining <= 0) {
       clearInterval(timerIntervalId);
       endRound();
     }
+  }
+
+  function tickStopwatch() {
+    const elapsedSeconds = Math.floor((Date.now() - roundStartTimestamp) / 1000);
+    el.timerValue.textContent = formatDuration(elapsedSeconds);
   }
 
   el.endRoundBtn.addEventListener('click', endRound);
@@ -201,6 +225,13 @@
       const letter = String.fromCharCode(65 + (chainAbsoluteIndex % 26));
       entry.lettersThru = laps > 0 ? `A thru ${letter} (lap ${laps + 1})` : `A thru ${letter}`;
       entry.lettersThruIndex = chainAbsoluteIndex;
+    }
+    if (currentTimerSetting === 'untimed') {
+      entry.durationSeconds = Math.floor((Date.now() - roundStartTimestamp) / 1000);
+      el.summaryDuration.textContent = formatDuration(entry.durationSeconds);
+      el.summaryDurationStat.classList.remove('hidden');
+    } else {
+      el.summaryDurationStat.classList.add('hidden');
     }
     Leaderboard.addEntry(entry);
 
@@ -359,28 +390,49 @@
 
   // ---------- Leaderboard ----------
 
-  const LB_COLUMNS = {
-    blitz: [
-      { key: 'rank', label: '#', sortable: false },
+  const NAME_SET_LABELS = { all: 'All', male: 'Male', female: 'Female' };
+
+  // Columns depend on mode (blitz vs chain fields), whether the "Any Name Set"
+  // filter is active (adds a Name Set column so rows stay distinguishable),
+  // and whether this is the Untimed board (adds a Time Played column).
+  function getColumns(mode, timer, genderFilter) {
+    const columns = [
+      { key: 'rank', label: '#', sortable: false, format: (e) => '#' + e.rank },
       { key: 'playerName', label: 'Player', sortable: true, defaultDir: 'asc' },
-      { key: 'score', label: 'Score', sortable: true, defaultDir: 'desc' },
-      { key: 'startLetter', label: 'Starting Letter', sortable: true, defaultDir: 'asc' },
-      { key: 'namesCount', label: 'Names Found', sortable: true, defaultDir: 'desc' },
-    ],
-    chain: [
-      { key: 'rank', label: '#', sortable: false },
-      { key: 'playerName', label: 'Player', sortable: true, defaultDir: 'asc' },
-      { key: 'score', label: 'Score', sortable: true, defaultDir: 'desc' },
-      {
+    ];
+    if (genderFilter === 'any') {
+      columns.push({
+        key: 'nameSet',
+        label: 'Name Set',
+        sortable: true,
+        defaultDir: 'asc',
+        format: (e) => NAME_SET_LABELS[e.nameSet] || e.nameSet,
+      });
+    }
+    columns.push({ key: 'score', label: 'Score', sortable: true, defaultDir: 'desc' });
+    if (mode === 'blitz') {
+      columns.push({ key: 'startLetter', label: 'Starting Letter', sortable: true, defaultDir: 'asc' });
+    } else {
+      columns.push({
         key: 'lettersThruIndex',
         label: 'Letters Reached',
         sortable: true,
         defaultDir: 'desc',
-        display: 'lettersThru',
-      },
-      { key: 'namesCount', label: 'Names Found', sortable: true, defaultDir: 'desc' },
-    ],
-  };
+        format: (e) => e.lettersThru,
+      });
+    }
+    columns.push({ key: 'namesCount', label: 'Names Found', sortable: true, defaultDir: 'desc' });
+    if (timer === 'untimed') {
+      columns.push({
+        key: 'durationSeconds',
+        label: 'Time Played',
+        sortable: true,
+        defaultDir: 'desc',
+        format: (e) => formatDuration(e.durationSeconds || 0),
+      });
+    }
+    return columns;
+  }
 
   let lbMode = 'blitz';
   let lbTimer = 'untimed';
@@ -403,6 +455,8 @@
     if (!btn) return;
     lbTimer = btn.dataset.lbTimer;
     [...el.lbTimerTabs.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    lbSortKey = 'score';
+    lbSortDir = 'desc';
     renderLeaderboardTable();
   });
 
@@ -411,11 +465,13 @@
     if (!btn) return;
     lbGenderFilter = btn.dataset.lbGender;
     [...el.lbGenderFilter.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    lbSortKey = 'score';
+    lbSortDir = 'desc';
     renderLeaderboardTable();
   });
 
   function renderLeaderboardTable() {
-    const columns = LB_COLUMNS[lbMode];
+    const columns = getColumns(lbMode, lbTimer, lbGenderFilter);
     const entries = Leaderboard.getFiltered(lbMode, lbTimer, lbGenderFilter);
     const ranked = Leaderboard.withRanks(entries);
     const sorted = Leaderboard.sortEntries(ranked, lbSortKey, lbSortDir);
@@ -446,13 +502,7 @@
       if (entry.rank === 1) tr.classList.add('lb-rank-first');
       columns.forEach((col) => {
         const td = document.createElement('td');
-        if (col.key === 'rank') {
-          td.textContent = '#' + entry.rank;
-        } else if (col.display) {
-          td.textContent = entry[col.display];
-        } else {
-          td.textContent = entry[col.key];
-        }
+        td.textContent = col.format ? col.format(entry) : entry[col.key];
         tr.appendChild(td);
       });
       el.lbTableBody.appendChild(tr);
