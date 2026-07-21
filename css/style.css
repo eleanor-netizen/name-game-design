@@ -205,6 +205,12 @@ h1 {
   flex-wrap: wrap;
 }
 
+.remaining-display {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
 .letter-badge {
   display: inline-flex;
   align-items: center;

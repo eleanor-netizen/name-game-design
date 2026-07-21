@@ -20,6 +20,7 @@
 
     modeLabel: document.getElementById('mode-label'),
     promptDisplay: document.getElementById('prompt-display'),
+    remainingDisplay: document.getElementById('remaining-display'),
     timerDisplay: document.getElementById('timer-display'),
     timerLabel: document.getElementById('timer-label'),
     timerValue: document.getElementById('timer-value'),
@@ -85,6 +86,8 @@
     screens[name].classList.remove('hidden');
   }
 
+  const NAME_SET_LABELS = { all: 'All', male: 'Male', female: 'Female' };
+
   function formatDuration(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
@@ -108,6 +111,26 @@
     li.appendChild(nameSpan);
     li.appendChild(scoreSpan);
     return li;
+  }
+
+  // Updates the live "names remaining" readout for `letter` and returns the
+  // count, so callers can also check whether the pool has run dry.
+  function updateRemainingDisplay(letter, extraBlockedKeys) {
+    const remaining = Game.remainingCount(letter, extraBlockedKeys);
+    el.remainingDisplay.textContent = `${remaining} name${remaining === 1 ? '' : 's'} left starting with "${letter}"`;
+    return remaining;
+  }
+
+  // Refreshes the remaining-count display for `letter` and, if the pool has
+  // hit zero (no further accepted entry is possible), ends the round.
+  // Returns true if the round was ended.
+  function checkRemainingOrEnd(letter, extraBlockedKeys) {
+    const remaining = updateRemainingDisplay(letter, extraBlockedKeys);
+    if (remaining <= 0) {
+      endRound({ reason: 'exhausted' });
+      return true;
+    }
+    return false;
   }
 
   el.playerNameInput.value = Leaderboard.getPlayerName();
@@ -188,14 +211,16 @@
     el.nameInput.value = '';
     el.feedbackZone.innerHTML = '';
 
-    el.modeLabel.textContent = mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain';
+    el.modeLabel.textContent =
+      (mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain') + ' (' + NAME_SET_LABELS[currentGenderFilter] + ' Names)';
 
     if (mode === 'blitz') {
       blitzLetter = Game.randomLetter();
       renderBlitzPrompt();
+      if (checkRemainingOrEnd(blitzLetter)) return; // pool already empty (pathological edge case)
     } else {
       chainAbsoluteIndex = 0; // Name Chain always starts its first seed at "A"
-      startNewChainSeed();
+      if (startNewChainSeed()) return; // same -- ended immediately if that seed's pool is empty
     }
 
     updateScoreDisplay();
@@ -275,6 +300,7 @@
     timeout: "Time's Up!",
     reachedZ: 'Nicely Done!',
     lost: 'Game Over',
+    exhausted: 'Dictionary Exhausted!',
   };
 
   function endRound(options) {
@@ -338,6 +364,8 @@
 
   // ---------- Name Chain ----------
 
+  // Returns true if starting this seed immediately ended the round (its first
+  // blank's pool was already exhausted -- a pathological edge case).
   function startNewChainSeed() {
     const letter = String.fromCharCode(65 + (chainAbsoluteIndex % 26));
     const seedEntry = Game.pickSeedName(letter);
@@ -352,6 +380,7 @@
       blockedKeys: new Set([Game.dedupeKey(seedEntry.name.toLowerCase())]),
     };
     renderChainPrompt();
+    return checkRemainingOrEnd(chain.blanks[0].letter, chain.blockedKeys);
   }
 
   function renderChainPrompt() {
@@ -390,6 +419,7 @@
       const result = Game.tryAccept(raw, blitzLetter);
       if (result.ok) {
         acceptName(result.record);
+        if (checkRemainingOrEnd(blitzLetter)) return; // no names left for this letter -- round over
       } else {
         rejectFeedback(raw, result.reason);
       }
@@ -418,8 +448,10 @@
             if (instantDeath) startInstantDeathCountdown();
             setTimeout(startNewChainSeed, 550);
           }
-        } else if (instantDeath) {
-          startInstantDeathCountdown();
+        } else {
+          const nextLetter = chain.blanks[chain.currentBlankIndex].letter;
+          if (checkRemainingOrEnd(nextLetter, chain.blockedKeys)) return; // no names left for this letter -- round over
+          if (instantDeath) startInstantDeathCountdown();
         }
       } else if (instantDeath) {
         clearInterval(instantDeathIntervalId);
@@ -480,8 +512,6 @@
   }
 
   // ---------- Leaderboard ----------
-
-  const NAME_SET_LABELS = { all: 'All', male: 'Male', female: 'Female' };
 
   // Columns depend on mode (blitz vs chain fields), whether the "Any Name Set"
   // filter is active (adds a Name Set column so rows stay distinguishable),

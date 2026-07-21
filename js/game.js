@@ -143,6 +143,22 @@ const Game = (() => {
     return [...usedEntries].sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  // How many names starting with `letter` (under the active gender filter)
+  // could still be accepted right now: the letter's pool minus names already
+  // used this round and minus any extraBlockedKeys (e.g. a Name Chain seed
+  // blocking itself as an answer).
+  function remainingCount(letter, extraBlockedKeys) {
+    const pool = activeLettersPool[letter] || [];
+    let count = 0;
+    for (const entry of pool) {
+      const key = dedupeKey(entry.name.toLowerCase());
+      if (usedKeys.has(key)) continue;
+      if (extraBlockedKeys && extraBlockedKeys.has(key)) continue;
+      count++;
+    }
+    return count;
+  }
+
   function scoreTotal() {
     return usedEntries.reduce((sum, e) => sum + e.score, 0);
   }
@@ -157,6 +173,7 @@ const Game = (() => {
     resetSession,
     tryAccept,
     getSidebarSorted,
+    remainingCount,
     dedupeKey,
     scoreTotal,
     get usedEntries() {
