@@ -163,20 +163,44 @@ const Game = (() => {
     return getAvailableEntries(letter, extraBlockedKeys).length;
   }
 
-  // One random still-available entry per rarity tier (1x-4x) for `letter`,
-  // in tier order -- used to suggest names the player could have tried when
-  // a round ends. Tiers with nothing available are simply omitted, so this
-  // returns up to 4 entries, not always exactly 4.
+  // Up to 4 random still-available entries for `letter`, spread across
+  // rarity tiers (1x-4x) and always totaling 4 when enough names exist
+  // anywhere in the pool -- used to suggest names the player could have
+  // tried when a round ends. With 4 tiers present, one comes from each;
+  // with 3, the lowest (most common) tier supplies 2 and the rest 1 each;
+  // with 2, each supplies 2; with 1, all 4 come from that tier. If a tier
+  // that's owed extras doesn't have enough names of its own, the shortfall
+  // rolls over to the next tier in line (lowest to highest) rather than
+  // leaving the total short of 4.
   function sampleRemainingByTier(letter, extraBlockedKeys) {
     const available = getAvailableEntries(letter, extraBlockedKeys);
     const byTier = { 1: [], 2: [], 3: [], 4: [] };
     available.forEach((entry) => byTier[getMultiplier(entry.rank)].push(entry));
+    const presentTiers = [1, 2, 3, 4].filter((t) => byTier[t].length > 0);
+
+    const takeCount = {};
+    presentTiers.forEach((t) => (takeCount[t] = 0));
+
+    let total = 0;
+    let progressed = true;
+    while (total < 4 && progressed) {
+      progressed = false;
+      for (const t of presentTiers) {
+        if (total >= 4) break;
+        if (takeCount[t] < byTier[t].length) {
+          takeCount[t]++;
+          total++;
+          progressed = true;
+        }
+      }
+    }
 
     const picked = [];
-    [1, 2, 3, 4].forEach((tier) => {
+    presentTiers.forEach((tier) => {
       const group = byTier[tier];
-      if (group.length > 0) {
-        picked.push(group[Math.floor(Math.random() * group.length)]);
+      for (let i = 0; i < takeCount[tier]; i++) {
+        const idx = Math.floor(Math.random() * group.length);
+        picked.push(group.splice(idx, 1)[0]);
       }
     });
     return picked;
