@@ -10,6 +10,9 @@
   const el = {
     playerNameInput: document.getElementById('player-name-input'),
     modeOptions: document.getElementById('mode-options'),
+    chainStyleGroup: document.getElementById('chain-style-group'),
+    chainStyleOptions: document.getElementById('chain-style-options'),
+    timerGroup: document.getElementById('timer-group'),
     timerOptions: document.getElementById('timer-options'),
     genderOptions: document.getElementById('gender-options'),
     startBtn: document.getElementById('start-btn'),
@@ -22,7 +25,6 @@
     timerValue: document.getElementById('timer-value'),
     scoreTotal: document.getElementById('score-total'),
     endRoundBtn: document.getElementById('end-round-btn'),
-    endGameBtn: document.getElementById('end-game-btn'),
     submitForm: document.getElementById('submit-form'),
     nameInput: document.getElementById('name-input'),
     feedbackZone: document.getElementById('feedback-chip-zone'),
@@ -30,17 +32,21 @@
     usedCount: document.getElementById('used-count'),
     usedNamesList: document.getElementById('used-names-list'),
 
+    summaryHeading: document.getElementById('summary-heading'),
     summaryCount: document.getElementById('summary-count'),
     summaryScore: document.getElementById('summary-score'),
     summaryRarest: document.getElementById('summary-rarest'),
     summaryDurationStat: document.getElementById('summary-duration-stat'),
     summaryDuration: document.getElementById('summary-duration'),
+    summaryReviewCount: document.getElementById('summary-review-count'),
+    summaryReviewList: document.getElementById('summary-review-list'),
     playAgainBtn: document.getElementById('play-again-btn'),
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
 
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
+    lbTimerInstantDeath: document.getElementById('lb-timer-instant-death'),
     lbGenderFilter: document.getElementById('lb-gender-filter'),
     lbTableHead: document.getElementById('lb-table-head'),
     lbTableBody: document.getElementById('lb-table-body'),
@@ -52,14 +58,19 @@
   let selectedMode = 'blitz';
   let selectedTimer = 'untimed';
   let selectedGender = 'all';
+  let selectedChainStyle = 'normal';
 
   let currentMode = null;
   let currentTimerSetting = 'untimed';
+  let currentChainStyle = 'normal';
   let currentGenderFilter = 'all';
   let currentPlayerName = 'Anonymous';
   let timerRemaining = 0;
   let timerIntervalId = null;
-  let roundStartTimestamp = 0; // used to clock untimed rounds
+  let roundStartTimestamp = 0; // used to clock untimed/instant-death rounds
+
+  let instantDeathIntervalId = null;
+  let instantDeathRemaining = 0;
 
   let blitzLetter = null;
 
@@ -83,15 +94,49 @@
     return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 
+  // Shared row builder for both the live sidebar and the post-round review list.
+  function buildNameListItem(entry) {
+    const li = document.createElement('li');
+    const dot = document.createElement('i');
+    dot.className = 'tier-dot ' + Game.tierClass(entry.rank);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = entry.name;
+    const scoreSpan = document.createElement('span');
+    scoreSpan.className = 'used-score';
+    scoreSpan.textContent = entry.score;
+    li.appendChild(dot);
+    li.appendChild(nameSpan);
+    li.appendChild(scoreSpan);
+    return li;
+  }
+
   el.playerNameInput.value = Leaderboard.getPlayerName();
 
   // ---------- Home screen option toggles ----------
+
+  // Chain Style only applies to Name Chain, and Instant Death replaces the
+  // Timer picker with its own pacing rules, so both toggle visibility here.
+  function updateHomeOptionVisibility() {
+    const isChain = selectedMode === 'chain';
+    el.chainStyleGroup.classList.toggle('hidden', !isChain);
+    const instantDeathActive = isChain && selectedChainStyle === 'instant-death';
+    el.timerGroup.classList.toggle('hidden', instantDeathActive);
+  }
 
   el.modeOptions.addEventListener('click', (e) => {
     const btn = e.target.closest('.option-btn');
     if (!btn) return;
     selectedMode = btn.dataset.mode;
     [...el.modeOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    updateHomeOptionVisibility();
+  });
+
+  el.chainStyleOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if (!btn) return;
+    selectedChainStyle = btn.dataset.chainStyle;
+    [...el.chainStyleOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    updateHomeOptionVisibility();
   });
 
   el.timerOptions.addEventListener('click', (e) => {
@@ -108,8 +153,10 @@
     [...el.genderOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
 
-  el.startBtn.addEventListener('click', () => startGame(selectedMode, selectedTimer));
-  el.playAgainBtn.addEventListener('click', () => startGame(currentMode, currentTimerSetting));
+  el.startBtn.addEventListener('click', () =>
+    startGame(selectedMode, selectedTimer, selectedMode === 'chain' ? selectedChainStyle : 'normal')
+  );
+  el.playAgainBtn.addEventListener('click', () => startGame(currentMode, currentTimerSetting, currentChainStyle));
   el.changeModeBtn.addEventListener('click', () => showScreen('home'));
   el.viewLeaderboardBtn.addEventListener('click', () => {
     renderLeaderboardTable();
@@ -126,9 +173,10 @@
   // the used-names list both reset, so previously-used names become
   // available again.
 
-  function startGame(mode, timerSetting) {
+  function startGame(mode, timerSetting, chainStyle) {
     currentMode = mode;
-    currentTimerSetting = timerSetting;
+    currentChainStyle = mode === 'chain' ? chainStyle : 'normal';
+    currentTimerSetting = currentChainStyle === 'instant-death' ? 'instant-death' : timerSetting;
     currentGenderFilter = selectedGender;
     currentPlayerName = el.playerNameInput.value.trim() || 'Anonymous';
     Leaderboard.setPlayerName(currentPlayerName);
@@ -154,17 +202,26 @@
     renderSidebar();
 
     clearInterval(timerIntervalId);
-    el.timerDisplay.classList.remove('low');
-    if (timerSetting === 'untimed') {
+    clearInterval(instantDeathIntervalId);
+    el.timerDisplay.classList.remove('low', 'danger');
+    el.endRoundBtn.classList.remove('hidden');
+
+    if (currentChainStyle === 'instant-death') {
+      // The 5-second countdown only starts once the player submits their
+      // first name; total elapsed time is still tracked for the leaderboard.
+      el.timerLabel.textContent = 'Get Ready';
+      el.timerValue.textContent = '—';
+      el.timerDisplay.classList.remove('hidden');
+      roundStartTimestamp = Date.now();
+    } else if (currentTimerSetting === 'untimed') {
       el.timerLabel.textContent = 'Time Played';
       roundStartTimestamp = Date.now();
       el.timerValue.textContent = formatDuration(0);
       el.timerDisplay.classList.remove('hidden');
-      el.endRoundBtn.classList.remove('hidden');
       timerIntervalId = setInterval(tickStopwatch, 1000);
     } else {
       el.timerLabel.textContent = 'Time Left';
-      timerRemaining = parseInt(timerSetting, 10);
+      timerRemaining = parseInt(currentTimerSetting, 10);
       el.timerValue.textContent = timerRemaining;
       el.timerDisplay.classList.remove('hidden');
       el.endRoundBtn.classList.add('hidden');
@@ -190,15 +247,32 @@
     el.timerValue.textContent = formatDuration(elapsedSeconds);
   }
 
-  el.endRoundBtn.addEventListener('click', endRound);
+  // Instant Death: each accepted name buys 5 more seconds to submit the next one.
+  function startInstantDeathCountdown() {
+    clearInterval(instantDeathIntervalId);
+    instantDeathRemaining = 5;
+    el.timerLabel.textContent = 'Next Name In';
+    el.timerValue.textContent = instantDeathRemaining;
+    el.timerDisplay.classList.remove('danger');
+    instantDeathIntervalId = setInterval(tickInstantDeathCountdown, 1000);
+  }
 
-  el.endGameBtn.addEventListener('click', () => {
-    clearInterval(timerIntervalId);
-    showScreen('home');
-  });
+  function tickInstantDeathCountdown() {
+    instantDeathRemaining--;
+    el.timerValue.textContent = instantDeathRemaining;
+    if (instantDeathRemaining <= 2) el.timerDisplay.classList.add('danger');
+    if (instantDeathRemaining <= 0) {
+      clearInterval(instantDeathIntervalId);
+      endRound();
+    }
+  }
 
-  function endRound() {
+  el.endRoundBtn.addEventListener('click', () => endRound());
+
+  function endRound(options) {
+    options = options || {};
     clearInterval(timerIntervalId);
+    clearInterval(instantDeathIntervalId);
     const roundEntries = Game.usedEntries;
     const roundScore = Game.scoreTotal();
     let rarest = null;
@@ -206,9 +280,15 @@
       if (!rarest || e.rank > rarest.rank) rarest = e;
     });
 
+    el.summaryHeading.textContent = options.reachedZ ? 'Nicely Done!' : 'Round Complete';
     el.summaryCount.textContent = roundEntries.length;
     el.summaryScore.textContent = roundScore;
     el.summaryRarest.textContent = rarest ? rarest.name : '—';
+
+    const byScoreDesc = [...roundEntries].sort((a, b) => b.score - a.score);
+    el.summaryReviewCount.textContent = byScoreDesc.length ? `(${byScoreDesc.length})` : '';
+    el.summaryReviewList.innerHTML = '';
+    byScoreDesc.forEach((e) => el.summaryReviewList.appendChild(buildNameListItem(e)));
 
     const entry = {
       playerName: currentPlayerName,
@@ -226,7 +306,7 @@
       entry.lettersThru = laps > 0 ? `A thru ${letter} (lap ${laps + 1})` : `A thru ${letter}`;
       entry.lettersThruIndex = chainAbsoluteIndex;
     }
-    if (currentTimerSetting === 'untimed') {
+    if (currentTimerSetting === 'untimed' || currentTimerSetting === 'instant-death') {
       entry.durationSeconds = Math.floor((Date.now() - roundStartTimestamp) / 1000);
       el.summaryDuration.textContent = formatDuration(entry.durationSeconds);
       el.summaryDurationStat.classList.remove('hidden');
@@ -309,17 +389,33 @@
       if (!chain || chain.currentBlankIndex >= chain.blanks.length) return; // between seeds, ignore
       const requiredLetter = chain.blanks[chain.currentBlankIndex].letter;
       const result = Game.tryAccept(raw, requiredLetter, chain.blockedKeys);
+      const instantDeath = currentChainStyle === 'instant-death';
+
       if (result.ok) {
         chain.blanks[chain.currentBlankIndex].filled = true;
         chain.blanks[chain.currentBlankIndex].filledName = result.record.name;
         chain.currentBlankIndex++;
         acceptName(result.record);
+        renderChainPrompt(); // always show the fill immediately, even on the seed's last blank
+
         if (chain.currentBlankIndex >= chain.blanks.length) {
+          const completedLetterIndex = chainAbsoluteIndex % 26;
           chainAbsoluteIndex++;
-          setTimeout(startNewChainSeed, 550);
-        } else {
-          renderChainPrompt();
+          if (completedLetterIndex === 25) {
+            // Just completed the "Z" seed: the round ends here, it does not
+            // wrap back around to "A".
+            clearInterval(instantDeathIntervalId);
+            setTimeout(() => endRound({ reachedZ: true }), 550);
+          } else {
+            if (instantDeath) startInstantDeathCountdown();
+            setTimeout(startNewChainSeed, 550);
+          }
+        } else if (instantDeath) {
+          startInstantDeathCountdown();
         }
+      } else if (instantDeath) {
+        clearInterval(instantDeathIntervalId);
+        endRound();
       } else {
         rejectFeedback(raw, result.reason);
       }
@@ -372,20 +468,7 @@
     const sorted = Game.getSidebarSorted();
     el.usedCount.textContent = sorted.length ? `(${sorted.length})` : '';
     el.usedNamesList.innerHTML = '';
-    sorted.forEach((entry) => {
-      const li = document.createElement('li');
-      const dot = document.createElement('i');
-      dot.className = 'tier-dot ' + Game.tierClass(entry.rank);
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = entry.name;
-      const scoreSpan = document.createElement('span');
-      scoreSpan.className = 'used-score';
-      scoreSpan.textContent = entry.score;
-      li.appendChild(dot);
-      li.appendChild(nameSpan);
-      li.appendChild(scoreSpan);
-      el.usedNamesList.appendChild(li);
-    });
+    sorted.forEach((entry) => el.usedNamesList.appendChild(buildNameListItem(entry)));
   }
 
   // ---------- Leaderboard ----------
@@ -422,7 +505,9 @@
       });
     }
     columns.push({ key: 'namesCount', label: 'Names Found', sortable: true, defaultDir: 'desc' });
-    if (timer === 'untimed') {
+    // Untimed and Instant Death are both variable-length: their duration is
+    // worth showing. 60s/90s boards have a fixed, implied duration.
+    if (timer === 'untimed' || timer === 'instant-death') {
       columns.push({
         key: 'durationSeconds',
         label: 'Time Played',
@@ -445,6 +530,12 @@
     if (!btn) return;
     lbMode = btn.dataset.lbMode;
     [...el.lbModeTabs.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    // Instant Death is a Name Chain-only mode, so its board only makes sense there.
+    el.lbTimerInstantDeath.classList.toggle('hidden', lbMode !== 'chain');
+    if (lbMode !== 'chain' && lbTimer === 'instant-death') {
+      lbTimer = 'untimed';
+      [...el.lbTimerTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbTimer === 'untimed'));
+    }
     lbSortKey = 'score';
     lbSortDir = 'desc';
     renderLeaderboardTable();

@@ -41,7 +41,21 @@
         </div>
       </div>
 
-      <div class="option-group">
+      <div class="option-group hidden" id="chain-style-group">
+        <h2>Chain Style</h2>
+        <div class="option-row" id="chain-style-options">
+          <button type="button" class="option-btn selected" data-chain-style="normal">
+            <span class="option-title">Normal</span>
+            <span class="option-desc">Play at your own pace.</span>
+          </button>
+          <button type="button" class="option-btn" data-chain-style="instant-death">
+            <span class="option-title">Instant Death</span>
+            <span class="option-desc">Any miss ends the round. 5 seconds to submit each next name.</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="option-group" id="timer-group">
         <h2>Timer</h2>
         <div class="option-row" id="timer-options">
           <button type="button" class="option-btn selected" data-timer="untimed">Untimed</button>
@@ -78,7 +92,6 @@
         </div>
         <div class="score-display">Score<br /><span id="score-total">0</span></div>
         <button id="end-round-btn" class="secondary-btn">End Round</button>
-        <button id="end-game-btn" class="secondary-btn danger-btn">End Game</button>
       </div>
     </header>
 
@@ -114,7 +127,7 @@
   <!-- SUMMARY SCREEN -->
   <section id="screen-summary" class="screen hidden">
     <div class="home-card">
-      <h1>Round Complete</h1>
+      <h1 id="summary-heading">Round Complete</h1>
       <div class="summary-stats">
         <div class="stat">
           <span class="stat-value" id="summary-count">0</span>
@@ -133,6 +146,12 @@
           <span class="stat-label">Time Played</span>
         </div>
       </div>
+
+      <div class="summary-review">
+        <h3>Your Names <span class="used-count" id="summary-review-count"></span></h3>
+        <ul id="summary-review-list" class="used-names-list summary-review-list"></ul>
+      </div>
+
       <button id="play-again-btn" class="primary-btn">Play Again</button>
       <button id="change-mode-btn" class="secondary-btn">Change Mode</button>
       <button id="summary-leaderboard-btn" class="secondary-btn">View Leaderboard</button>
@@ -156,6 +175,7 @@
           <button type="button" class="tab-btn selected" data-lb-timer="untimed">Untimed</button>
           <button type="button" class="tab-btn" data-lb-timer="60">60s</button>
           <button type="button" class="tab-btn" data-lb-timer="90">90s</button>
+          <button type="button" class="tab-btn hidden" data-lb-timer="instant-death" id="lb-timer-instant-death">Instant Death</button>
         </div>
         <div class="option-row lb-tab-row" id="lb-gender-filter">
           <button type="button" class="tab-btn selected" data-lb-gender="any">Any Name Set</button>

@@ -116,6 +116,11 @@ h1 {
   background: #eef2ff;
 }
 
+.option-btn[data-chain-style="instant-death"].selected {
+  border-color: var(--danger);
+  background: #fef2f2;
+}
+
 .option-title {
   font-weight: 700;
   font-size: 0.95rem;
@@ -270,7 +275,8 @@ h1 {
   color: var(--accent-dark);
 }
 
-.timer-display.low #timer-value { color: #dc2626; }
+.timer-display.low #timer-value { color: var(--danger); }
+.timer-display.danger #timer-value { color: var(--danger); }
 
 .score-display {
   font-size: 0.8rem;
@@ -285,21 +291,10 @@ h1 {
   color: var(--text);
 }
 
-#end-round-btn,
-#end-game-btn {
+#end-round-btn {
   width: auto;
   padding: 10px 18px;
   margin: 0;
-}
-
-.danger-btn {
-  color: var(--danger);
-  border-color: #fecaca;
-}
-
-.danger-btn:hover {
-  border-color: var(--danger);
-  background: #fef2f2;
 }
 
 .game-body {
@@ -481,6 +476,20 @@ h1 {
 }
 
 /* ---------- Summary ---------- */
+
+.summary-review {
+  text-align: left;
+  margin: 4px 0 20px;
+}
+
+.summary-review h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+
+.summary-review-list {
+  max-height: 220px;
+}
 
 .summary-stats {
   display: flex;
