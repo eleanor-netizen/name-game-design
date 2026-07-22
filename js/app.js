@@ -33,6 +33,7 @@
     usedNamesList: document.getElementById('used-names-list'),
 
     summaryHeading: document.getElementById('summary-heading'),
+    summarySubheading: document.getElementById('summary-subheading'),
     summaryCount: document.getElementById('summary-count'),
     summaryScore: document.getElementById('summary-score'),
     summaryRarest: document.getElementById('summary-rarest'),
@@ -318,6 +319,12 @@
     });
 
     el.summaryHeading.textContent = SUMMARY_HEADING_BY_REASON[options.reason] || SUMMARY_HEADING_BY_REASON.manual;
+    if (options.reason === 'lost' && REJECT_REASON_TEXT[options.rejectReason]) {
+      el.summarySubheading.textContent = REJECT_REASON_TEXT[options.rejectReason];
+      el.summarySubheading.classList.remove('hidden');
+    } else {
+      el.summarySubheading.classList.add('hidden');
+    }
     el.summaryCount.textContent = roundEntries.length;
     el.summaryScore.textContent = roundScore;
     el.summaryRarest.textContent = rarest ? rarest.name : '—';
@@ -477,7 +484,7 @@
         if (instantDeath) startInstantDeathCountdown();
       } else if (instantDeath) {
         clearInterval(instantDeathIntervalId);
-        endRound({ reason: 'lost' });
+        endRound({ reason: 'lost', rejectReason: result.reason });
       } else {
         rejectFeedback(raw, result.reason);
       }
@@ -512,7 +519,7 @@
         }
       } else if (instantDeath) {
         clearInterval(instantDeathIntervalId);
-        endRound({ reason: 'lost' });
+        endRound({ reason: 'lost', rejectReason: result.reason });
       } else {
         rejectFeedback(raw, result.reason);
       }
