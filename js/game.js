@@ -54,8 +54,8 @@ const Game = (() => {
   }
 
   function getMultiplier(rank) {
-    if (rank <= 100) return 1;
-    if (rank <= 1000) return 2;
+    if (rank <= 500) return 1;
+    if (rank <= 2000) return 2;
     if (rank <= 5000) return 3;
     return 4;
   }
