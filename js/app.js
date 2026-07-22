@@ -390,6 +390,7 @@
       score: roundScore,
       roundEntries,
       durationSeconds: elapsedSeconds,
+      playerName: currentPlayerName,
     });
     if (newlyUnlocked.length > 0) {
       el.achievementBannerLabel.textContent =
@@ -694,9 +695,9 @@
   // ---------- Achievements ----------
 
   function renderAchievementsScreen() {
-    const { unlocked } = Achievements.getProgress();
+    const { unlocked, stats } = Achievements.getProgress();
     const total = Achievements.BADGES.length;
-    const earnedCount = Achievements.BADGES.filter((b) => unlocked[b.id]).length;
+    const earnedCount = Achievements.BADGES.filter((b) => (unlocked[b.id] || []).length > 0).length;
     el.achievementsProgress.textContent = `${earnedCount} / ${total} earned`;
 
     const categories = [];
@@ -722,9 +723,9 @@
       grid.className = 'achievement-grid';
 
       cat.badges.forEach((badge) => {
-        const unlockedAt = unlocked[badge.id];
+        const earners = unlocked[badge.id] || [];
         const card = document.createElement('div');
-        card.className = 'achievement-card' + (unlockedAt ? ' unlocked' : '');
+        card.className = 'achievement-card' + (earners.length > 0 ? ' unlocked' : '');
 
         const icon = document.createElement('span');
         icon.className = 'achievement-icon';
@@ -732,6 +733,7 @@
         card.appendChild(icon);
 
         const text = document.createElement('div');
+        text.className = 'achievement-text';
         const title = document.createElement('div');
         title.className = 'achievement-title';
         title.textContent = badge.title;
@@ -742,11 +744,36 @@
         desc.textContent = badge.desc;
         text.appendChild(desc);
 
-        if (unlockedAt) {
-          const date = document.createElement('div');
-          date.className = 'achievement-date';
-          date.textContent = 'Earned ' + new Date(unlockedAt).toLocaleDateString();
-          text.appendChild(date);
+        if (badge.progress) {
+          const { current, target } = badge.progress(stats);
+          const pct = Math.max(0, Math.min(100, (current / target) * 100));
+          const track = document.createElement('div');
+          track.className = 'achievement-progress-track';
+          const fill = document.createElement('div');
+          fill.className = 'achievement-progress-fill';
+          fill.style.width = pct + '%';
+          track.appendChild(fill);
+          text.appendChild(track);
+          const progLabel = document.createElement('div');
+          progLabel.className = 'achievement-progress-label';
+          progLabel.textContent = `${Math.min(current, target).toLocaleString()} / ${target.toLocaleString()}`;
+          text.appendChild(progLabel);
+        }
+
+        if (earners.length > 0) {
+          const earnedWrap = document.createElement('div');
+          earnedWrap.className = 'achievement-earned';
+          const label = document.createElement('div');
+          label.className = 'achievement-earned-label';
+          label.textContent = 'Earned by:';
+          earnedWrap.appendChild(label);
+          earners.forEach((e) => {
+            const row = document.createElement('div');
+            row.className = 'achievement-earned-row';
+            row.textContent = `${new Date(e.date).toLocaleDateString()} — ${e.name}`;
+            earnedWrap.appendChild(row);
+          });
+          text.appendChild(earnedWrap);
         }
 
         card.appendChild(text);

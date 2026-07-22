@@ -729,11 +729,48 @@ h1 {
   color: var(--text-dim);
 }
 
-.achievement-date {
+.achievement-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.achievement-progress-track {
+  margin-top: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.achievement-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.achievement-progress-label {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+.achievement-earned {
+  margin-top: 6px;
+}
+
+.achievement-earned-label {
   font-size: 0.68rem;
   color: var(--accent-dark);
   font-weight: 700;
-  margin-top: 4px;
+}
+
+.achievement-earned-row {
+  font-size: 0.68rem;
+  color: var(--accent-dark);
+  font-weight: 600;
+  margin-top: 1px;
 }
 
 .achievement-banner {

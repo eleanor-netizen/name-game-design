@@ -2,9 +2,12 @@
 //
 // recordRound(context) is called once at the end of every round. `context`
 // describes that round (mode, timer, ending reason, score, the accepted
-// name entries, and elapsed seconds); lifetime stats (unique names ever
-// accepted, cumulative 4x-rarity finds) are updated from it first, then
-// every not-yet-unlocked badge is tested against the round + updated stats.
+// name entries, elapsed seconds, and the player's name); lifetime stats
+// (unique names ever accepted, cumulative 4x-rarity finds) are updated from
+// it first, then every badge the current player hasn't yet earned is tested
+// against the round + updated stats. A badge can be earned independently by
+// multiple named players on the same device -- each earner's name and the
+// date they first earned it are recorded and kept.
 const Achievements = (() => {
   const STATS_KEY = 'nameGameLifetimeStats';
   const UNLOCKED_KEY = 'nameGameUnlockedBadges';
@@ -33,10 +36,22 @@ const Achievements = (() => {
     }
   }
 
+  // unlocked: { badgeId: [{ name, date }, ...] }, sorted earliest-first.
   function loadUnlocked() {
     try {
       const raw = localStorage.getItem(UNLOCKED_KEY);
-      return raw ? JSON.parse(raw) : {};
+      const parsed = raw ? JSON.parse(raw) : {};
+      // Migrate the old { badgeId: timestamp } shape from earlier versions.
+      const migrated = {};
+      Object.keys(parsed).forEach((id) => {
+        const val = parsed[id];
+        if (Array.isArray(val)) {
+          migrated[id] = val;
+        } else if (typeof val === 'number') {
+          migrated[id] = [{ name: 'Anonymous', date: val }];
+        }
+      });
+      return migrated;
     } catch (e) {
       return {};
     }
@@ -51,6 +66,7 @@ const Achievements = (() => {
   }
 
   const isBlitzTimed = (r) => r.mode === 'blitz' && r.timer === '60';
+  const isBlitzCounted = (r) => r.mode === 'blitz' && (r.timer === '60' || r.timer === 'untimed');
   const isChainAZ = (r) => r.mode === 'chain' && r.reason === 'reachedZ';
 
   const BADGES = [
@@ -64,27 +80,37 @@ const Achievements = (() => {
 
     // ---- Lifetime unique names ----
     { id: 'unique_100', category: 'Lifetime Names', icon: '📖', title: 'Getting Started',
-      desc: 'Play 100 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 100 },
+      desc: 'Play 100 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 100,
+      progress: (life) => ({ current: life.uniqueNames.size, target: 100 }) },
     { id: 'unique_500', category: 'Lifetime Names', icon: '📖', title: 'Familiar Face',
-      desc: 'Play 500 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 500 },
+      desc: 'Play 500 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 500,
+      progress: (life) => ({ current: life.uniqueNames.size, target: 500 }) },
     { id: 'unique_1000', category: 'Lifetime Names', icon: '📖', title: 'Name Collector',
-      desc: 'Play 1,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 1000 },
+      desc: 'Play 1,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 1000,
+      progress: (life) => ({ current: life.uniqueNames.size, target: 1000 }) },
     { id: 'unique_5000', category: 'Lifetime Names', icon: '📖', title: 'Walking Dictionary',
-      desc: 'Play 5,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 5000 },
+      desc: 'Play 5,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 5000,
+      progress: (life) => ({ current: life.uniqueNames.size, target: 5000 }) },
     { id: 'unique_10000', category: 'Lifetime Names', icon: '📖', title: 'Onomastics Master',
-      desc: 'Play 10,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 10000 },
+      desc: 'Play 10,000 unique names (lifetime)', test: (r, life) => life.uniqueNames.size >= 10000,
+      progress: (life) => ({ current: life.uniqueNames.size, target: 10000 }) },
 
     // ---- Lifetime rare (4x) finds ----
     { id: 'tier4_20', category: 'Rare Finds', icon: '💎', title: 'Rare Sighting',
-      desc: 'Play 20 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 20 },
+      desc: 'Play 20 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 20,
+      progress: (life) => ({ current: life.tier4Count, target: 20 }) },
     { id: 'tier4_50', category: 'Rare Finds', icon: '💎', title: 'Rarity Hunter',
-      desc: 'Play 50 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 50 },
+      desc: 'Play 50 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 50,
+      progress: (life) => ({ current: life.tier4Count, target: 50 }) },
     { id: 'tier4_100', category: 'Rare Finds', icon: '💎', title: 'Rarity Expert',
-      desc: 'Play 100 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 100 },
+      desc: 'Play 100 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 100,
+      progress: (life) => ({ current: life.tier4Count, target: 100 }) },
     { id: 'tier4_250', category: 'Rare Finds', icon: '💎', title: 'Rarity Connoisseur',
-      desc: 'Play 250 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 250 },
+      desc: 'Play 250 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 250,
+      progress: (life) => ({ current: life.tier4Count, target: 250 }) },
     { id: 'tier4_500', category: 'Rare Finds', icon: '💎', title: 'Rarity Legend',
-      desc: 'Play 500 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 500 },
+      desc: 'Play 500 4x-rarity names (lifetime)', test: (r, life) => life.tier4Count >= 500,
+      progress: (life) => ({ current: life.tier4Count, target: 500 }) },
 
     // ---- Name Chain mastery ----
     { id: 'chain_az', category: 'Name Chain Mastery', icon: '🔗', title: 'A to Z',
@@ -101,22 +127,31 @@ const Achievements = (() => {
     { id: 'chain_az_instant_death', category: 'Name Chain Mastery', icon: '🔗', title: 'Nerves of Steel',
       desc: 'Reach Z in Instant Death mode', test: (r) => isChainAZ(r) && r.timer === 'instant-death' },
 
-    // ---- Alphabet Blitz mastery (60-second rounds) ----
+    // ---- Alphabet Blitz mastery ----
+    { id: 'blitz_250', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'Quick Start',
+      desc: 'Earn 250 points in a timed round of Alphabet Blitz', test: (r) => isBlitzTimed(r) && r.score >= 250 },
     { id: 'blitz_500', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'Warming Up',
-      desc: 'Earn 500 points in Alphabet Blitz (60s)', test: (r) => isBlitzTimed(r) && r.score >= 500 },
+      desc: 'Earn 500 points in a timed round of Alphabet Blitz', test: (r) => isBlitzTimed(r) && r.score >= 500 },
     { id: 'blitz_750', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'On a Roll',
-      desc: 'Earn 750 points in Alphabet Blitz (60s)', test: (r) => isBlitzTimed(r) && r.score >= 750 },
+      desc: 'Earn 750 points in a timed round of Alphabet Blitz', test: (r) => isBlitzTimed(r) && r.score >= 750 },
     { id: 'blitz_1000', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'Blitz Master',
-      desc: 'Earn 1,000 points in Alphabet Blitz (60s)', test: (r) => isBlitzTimed(r) && r.score >= 1000 },
+      desc: 'Earn 1,000 points in a timed round of Alphabet Blitz', test: (r) => isBlitzTimed(r) && r.score >= 1000 },
     { id: 'blitz_1500', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'Blitz Legend',
-      desc: 'Earn 1,500 points in Alphabet Blitz (60s)', test: (r) => isBlitzTimed(r) && r.score >= 1500 },
+      desc: 'Earn 1,500 points in a timed round of Alphabet Blitz', test: (r) => isBlitzTimed(r) && r.score >= 1500 },
     { id: 'blitz_1x_only_250', category: 'Alphabet Blitz Mastery', icon: '⚡', title: 'Purist',
       desc: 'Earn 250 points in Alphabet Blitz using only 1x-rarity names',
       test: (r) => r.mode === 'blitz' && r.score >= 250 && r.roundEntries.length > 0 && r.roundEntries.every((e) => e.tier === 1) },
+    { id: 'blitz_names_10', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Quickfire',
+      desc: 'Play 10 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 10 },
+    { id: 'blitz_names_25', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Name Machine',
+      desc: 'Play 25 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 25 },
+    { id: 'blitz_names_50', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Human Almanac',
+      desc: 'Play 50 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 50 },
   ];
 
   // Updates lifetime stats from this round's accepted entries, then tests
-  // every not-yet-unlocked badge. Returns { stats, unlocked, newlyUnlocked }.
+  // every badge the current player doesn't already have. Returns
+  // { stats, unlocked, newlyUnlocked }.
   function recordRound(roundContext) {
     const stats = loadStats();
     roundContext.roundEntries.forEach((e) => {
@@ -125,10 +160,13 @@ const Achievements = (() => {
     });
     saveStats(stats);
 
+    const playerName = roundContext.playerName || 'Anonymous';
     const unlocked = loadUnlocked();
     const newlyUnlocked = [];
+    let changed = false;
     BADGES.forEach((badge) => {
-      if (unlocked[badge.id]) return;
+      const earners = unlocked[badge.id] || [];
+      if (earners.some((e) => e.name === playerName)) return;
       let earned = false;
       try {
         earned = !!badge.test(roundContext, stats);
@@ -136,11 +174,14 @@ const Achievements = (() => {
         earned = false;
       }
       if (earned) {
-        unlocked[badge.id] = Date.now();
+        earners.push({ name: playerName, date: Date.now() });
+        earners.sort((a, b) => a.date - b.date);
+        unlocked[badge.id] = earners;
         newlyUnlocked.push(badge);
+        changed = true;
       }
     });
-    if (newlyUnlocked.length > 0) saveUnlocked(unlocked);
+    if (changed) saveUnlocked(unlocked);
 
     return { stats, unlocked, newlyUnlocked };
   }
