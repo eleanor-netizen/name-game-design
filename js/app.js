@@ -113,12 +113,21 @@
 
   function maybeSpawnUnicorn(name) {
     if (!UNICORN_NAMES.has(name.toLowerCase())) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'unicorn-wrap';
+    wrap.style.top = (15 + Math.random() * 55) + '%';
+
+    const trail = document.createElement('div');
+    trail.className = 'unicorn-trail';
+    wrap.appendChild(trail);
+
     const unicorn = document.createElement('span');
     unicorn.className = 'unicorn-dash';
     unicorn.textContent = '🦄';
-    unicorn.style.top = (15 + Math.random() * 55) + '%';
-    el.unicornOverlay.appendChild(unicorn);
-    unicorn.addEventListener('animationend', () => unicorn.remove());
+    wrap.appendChild(unicorn);
+
+    el.unicornOverlay.appendChild(wrap);
+    unicorn.addEventListener('animationend', () => wrap.remove());
   }
 
   function formatDuration(totalSeconds) {
