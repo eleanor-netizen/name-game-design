@@ -12,6 +12,8 @@ const Achievements = (() => {
   const STATS_KEY = 'nameGameLifetimeStats';
   const UNLOCKED_KEY = 'nameGameUnlockedBadges';
 
+  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
   function loadStats() {
     try {
       const raw = localStorage.getItem(STATS_KEY);
@@ -19,9 +21,11 @@ const Achievements = (() => {
       return {
         uniqueNames: new Set(parsed && parsed.uniqueNames ? parsed.uniqueNames : []),
         tier4Count: parsed && parsed.tier4Count ? parsed.tier4Count : 0,
+        blitzLetters: new Set(parsed && parsed.blitzLetters ? parsed.blitzLetters : []),
+        namesPerLetter: (parsed && parsed.namesPerLetter) || {},
       };
     } catch (e) {
-      return { uniqueNames: new Set(), tier4Count: 0 };
+      return { uniqueNames: new Set(), tier4Count: 0, blitzLetters: new Set(), namesPerLetter: {} };
     }
   }
 
@@ -29,7 +33,12 @@ const Achievements = (() => {
     try {
       localStorage.setItem(
         STATS_KEY,
-        JSON.stringify({ uniqueNames: [...stats.uniqueNames], tier4Count: stats.tier4Count })
+        JSON.stringify({
+          uniqueNames: [...stats.uniqueNames],
+          tier4Count: stats.tier4Count,
+          blitzLetters: [...stats.blitzLetters],
+          namesPerLetter: stats.namesPerLetter,
+        })
       );
     } catch (e) {
       // localStorage unavailable -- lifetime stats just won't persist
@@ -96,6 +105,15 @@ const Achievements = (() => {
     { id: 'unique_10000', category: 'Lifetime Names', icon: '📖', title: 'Onomastics Master',
       desc: 'Play 10,000 unique names', test: (r, life) => life.uniqueNames.size >= 10000,
       progress: (life) => ({ current: life.uniqueNames.size, target: 10000 }) },
+    { id: 'names_all_letters_50', category: 'Lifetime Names', icon: '🔡', title: 'Full Coverage',
+      desc: 'Play 50 names beginning with each letter of the alphabet',
+      test: (r, life) => ALPHABET.every((l) => (life.namesPerLetter[l] || 0) >= 50),
+      progress: (life) => ({ current: ALPHABET.filter((l) => (life.namesPerLetter[l] || 0) >= 50).length, target: 26 }),
+      letterStatus: (life) => {
+        const status = {};
+        ALPHABET.forEach((l) => (status[l] = (life.namesPerLetter[l] || 0) >= 50));
+        return status;
+      } },
 
     // ---- Lifetime rare (4x) finds ----
     { id: 'tier4_20', category: 'Rare Finds', icon: '💎', title: 'Rare Sighting',
@@ -149,6 +167,19 @@ const Achievements = (() => {
       desc: 'Play 25 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 25 },
     { id: 'blitz_names_50', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Human Almanac',
       desc: 'Play 50 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 50 },
+    { id: 'blitz_names_100', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Encyclopedic',
+      desc: 'Play 100 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 100 },
+    { id: 'blitz_names_200', category: 'Alphabet Blitz Mastery', icon: '🎯', title: 'Living Census',
+      desc: 'Play 200 names in a single round of Alphabet Blitz', test: (r) => isBlitzCounted(r) && r.roundEntries.length >= 200 },
+    { id: 'blitz_all_letters', category: 'Alphabet Blitz Mastery', icon: '🔤', title: 'Alphabet Completionist',
+      desc: 'Play a round of Alphabet Blitz with each letter of the alphabet',
+      test: (r, life) => life.blitzLetters.size >= 26,
+      progress: (life) => ({ current: life.blitzLetters.size, target: 26 }),
+      letterStatus: (life) => {
+        const status = {};
+        ALPHABET.forEach((l) => (status[l] = life.blitzLetters.has(l)));
+        return status;
+      } },
   ];
 
   // Updates lifetime stats from this round's accepted entries, then tests
@@ -159,7 +190,12 @@ const Achievements = (() => {
     roundContext.roundEntries.forEach((e) => {
       stats.uniqueNames.add(e.name.toLowerCase());
       if (e.tier === 4) stats.tier4Count++;
+      const letter = e.name[0].toUpperCase();
+      stats.namesPerLetter[letter] = (stats.namesPerLetter[letter] || 0) + 1;
     });
+    if (roundContext.mode === 'blitz' && roundContext.startLetter) {
+      stats.blitzLetters.add(roundContext.startLetter.toUpperCase());
+    }
     saveStats(stats);
 
     const playerName = roundContext.playerName || 'Anonymous';

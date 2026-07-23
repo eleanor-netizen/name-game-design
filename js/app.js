@@ -55,6 +55,7 @@
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
     lbGenderFilter: document.getElementById('lb-gender-filter'),
+    lbLetterFilter: document.getElementById('lb-letter-filter'),
     lbTableHead: document.getElementById('lb-table-head'),
     lbTableBody: document.getElementById('lb-table-body'),
     lbTable: document.getElementById('lb-table'),
@@ -398,6 +399,7 @@
       roundEntries,
       durationSeconds: elapsedSeconds,
       playerName: currentPlayerName,
+      startLetter: currentMode === 'blitz' ? blitzLetter : undefined,
     });
     if (newlyUnlocked.length > 0) {
       el.achievementBannerLabel.textContent =
@@ -624,14 +626,41 @@
   let lbMode = 'blitz';
   let lbTimer = 'untimed';
   let lbGenderFilter = 'any';
+  let lbLetter = 'all';
   let lbSortKey = 'score';
   let lbSortDir = 'desc';
+
+  // Alphabet Blitz only: a horizontally scrollable "All" + A-Z strip that
+  // filters the high-score table down to rounds that started with that letter.
+  el.lbLetterFilter.innerHTML = '';
+  ['all', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')].forEach((letter) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn lb-letter-btn' + (letter === 'all' ? ' selected' : '');
+    btn.dataset.lbLetter = letter;
+    btn.textContent = letter === 'all' ? 'All' : letter;
+    el.lbLetterFilter.appendChild(btn);
+  });
+  el.lbLetterFilter.classList.toggle('hidden', lbMode !== 'blitz');
+
+  el.lbLetterFilter.addEventListener('click', (e) => {
+    const btn = e.target.closest('.lb-letter-btn');
+    if (!btn) return;
+    lbLetter = btn.dataset.lbLetter;
+    [...el.lbLetterFilter.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    lbSortKey = 'score';
+    lbSortDir = 'desc';
+    renderLeaderboardTable();
+  });
 
   el.lbModeTabs.addEventListener('click', (e) => {
     const btn = e.target.closest('.option-btn');
     if (!btn) return;
     lbMode = btn.dataset.lbMode;
     [...el.lbModeTabs.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    el.lbLetterFilter.classList.toggle('hidden', lbMode !== 'blitz');
+    lbLetter = 'all';
+    [...el.lbLetterFilter.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbLetter === 'all'));
     lbSortKey = 'score';
     lbSortDir = 'desc';
     renderLeaderboardTable();
@@ -659,7 +688,10 @@
 
   function renderLeaderboardTable() {
     const columns = getColumns(lbMode, lbTimer, lbGenderFilter);
-    const entries = Leaderboard.getFiltered(lbMode, lbTimer, lbGenderFilter);
+    let entries = Leaderboard.getFiltered(lbMode, lbTimer, lbGenderFilter);
+    if (lbMode === 'blitz' && lbLetter !== 'all') {
+      entries = entries.filter((e) => e.startLetter === lbLetter);
+    }
     const ranked = Leaderboard.withRanks(entries);
     const sorted = Leaderboard.sortEntries(ranked, lbSortKey, lbSortDir);
 
@@ -765,6 +797,32 @@
           progLabel.className = 'achievement-progress-label';
           progLabel.textContent = `${Math.min(current, target).toLocaleString()} / ${target.toLocaleString()}`;
           text.appendChild(progLabel);
+        }
+
+        if (badge.letterStatus) {
+          const status = badge.letterStatus(stats);
+          const expandBtn = document.createElement('button');
+          expandBtn.type = 'button';
+          expandBtn.className = 'achievement-expand-btn';
+          expandBtn.textContent = '▸ Letter progress';
+          expandBtn.setAttribute('aria-expanded', 'false');
+          text.appendChild(expandBtn);
+
+          const letterGrid = document.createElement('div');
+          letterGrid.className = 'achievement-letter-grid hidden';
+          'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((letter) => {
+            const cell = document.createElement('span');
+            cell.className = 'letter-cell' + (status[letter] ? ' complete' : '');
+            cell.textContent = letter;
+            letterGrid.appendChild(cell);
+          });
+          text.appendChild(letterGrid);
+
+          expandBtn.addEventListener('click', () => {
+            const nowHidden = letterGrid.classList.toggle('hidden');
+            expandBtn.textContent = (nowHidden ? '▸' : '▾') + ' Letter progress';
+            expandBtn.setAttribute('aria-expanded', String(!nowHidden));
+          });
         }
 
         if (earners.length > 0) {
