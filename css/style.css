@@ -977,9 +977,9 @@ h1 {
   left: -12%;
   top: 50%;
   width: 0;
-  height: 26px;
+  height: 38px;
   transform: translateY(-50%);
-  border-radius: 8px;
+  border-radius: 10px;
   background: repeating-linear-gradient(
     to bottom,
     #ff0040 0%, #ff0040 16.66%,
@@ -989,8 +989,10 @@ h1 {
     #00b0ff 66.64%, #00b0ff 83.3%,
     #b967ff 83.3%, #b967ff 100%
   );
-  box-shadow: 0 0 14px rgba(185, 103, 255, 0.5);
-  animation: unicorn-trail-grow 1.8s ease-in-out forwards;
+  box-shadow: 0 0 18px rgba(185, 103, 255, 0.55);
+  /* Linear to match .unicorn-dash's horizontal timing, so the trail's
+     leading edge always lines up with the unicorn's head. */
+  animation: unicorn-trail-grow 1.8s linear forwards;
 }
 
 @keyframes unicorn-trail-grow {
@@ -1002,16 +1004,22 @@ h1 {
   position: absolute;
   left: -12%;
   top: 50%;
-  font-size: 6rem;
-  animation: unicorn-dash 1.8s ease-in-out forwards;
-  filter: drop-shadow(0 0 10px rgba(185, 103, 255, 0.7)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+  font-size: 9rem;
+  animation: unicorn-dash 1.8s linear forwards;
+  filter: drop-shadow(0 0 14px rgba(185, 103, 255, 0.7)) drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2));
 }
 
 @keyframes unicorn-dash {
   0% { left: -12%; transform: translateY(-50%) scaleX(-1); }
-  25% { transform: translateY(calc(-50% - 24px)) scaleX(-1); }
-  50% { transform: translateY(-50%) scaleX(-1); }
-  75% { transform: translateY(calc(-50% - 24px)) scaleX(-1); }
+  10% { transform: translateY(calc(-50% - 32px)) scaleX(-1); }
+  20% { transform: translateY(-50%) scaleX(-1); }
+  30% { transform: translateY(calc(-50% + 32px)) scaleX(-1); }
+  40% { transform: translateY(-50%) scaleX(-1); }
+  50% { transform: translateY(calc(-50% - 32px)) scaleX(-1); }
+  60% { transform: translateY(-50%) scaleX(-1); }
+  70% { transform: translateY(calc(-50% + 32px)) scaleX(-1); }
+  80% { transform: translateY(-50%) scaleX(-1); }
+  90% { transform: translateY(calc(-50% - 32px)) scaleX(-1); }
   100% { left: 108%; transform: translateY(-50%) scaleX(-1); }
 }
 
