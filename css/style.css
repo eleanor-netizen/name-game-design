@@ -399,6 +399,29 @@ h1 {
   opacity: 0.9;
 }
 
+.feedback-chip.new-name {
+  background: var(--green);
+  border-radius: 14px;
+  padding: 8px 20px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: fade-out 0.35s ease 0.45s forwards;
+}
+
+.feedback-chip.new-name .feedback-name {
+  font-size: 1rem;
+}
+
+.feedback-chip.new-name .feedback-reason {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
 @keyframes shake-reject {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8px); }
@@ -836,6 +859,45 @@ h1 {
 .letter-cell.complete {
   background: var(--accent);
   color: white;
+}
+
+.high-score-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 2px solid #d97706;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 0 16px;
+  text-align: left;
+  animation: banner-in 0.35s ease;
+}
+
+.high-score-banner-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.high-score-banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.high-score-banner-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.high-score-banner-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #78350f;
 }
 
 .achievement-banner {

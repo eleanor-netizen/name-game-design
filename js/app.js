@@ -43,6 +43,8 @@
     summaryReviewList: document.getElementById('summary-review-list'),
     summaryMissed: document.getElementById('summary-missed'),
     summaryMissedChips: document.getElementById('summary-missed-chips'),
+    highScoreBanner: document.getElementById('high-score-banner'),
+    highScoreBannerTitle: document.getElementById('high-score-banner-title'),
     achievementBanner: document.getElementById('achievement-banner'),
     achievementBannerLabel: document.getElementById('achievement-banner-label'),
     achievementBannerTitle: document.getElementById('achievement-banner-title'),
@@ -96,6 +98,7 @@
   }
 
   const NAME_SET_LABELS = { all: 'All', male: 'Male', female: 'Female' };
+  const TIMER_LABELS = { untimed: 'Untimed', '60': '60s', 'instant-death': 'Instant Death' };
 
   function formatDuration(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
@@ -394,6 +397,27 @@
     }
     lastRoundEntryId = Leaderboard.addEntry(entry).id;
 
+    // Did this round just take #1 on the exact board it belongs to (the same
+    // board "High Scores" jumps to from this screen -- mode/timer/name set,
+    // plus starting letter for Blitz)?
+    let boardEntries = Leaderboard.getFiltered(entry.mode, entry.timer, entry.nameSet);
+    if (entry.mode === 'blitz') {
+      boardEntries = boardEntries.filter((e) => e.startLetter === entry.startLetter);
+    }
+    const myRanked = Leaderboard.withRanks(boardEntries).find((e) => e.id === lastRoundEntryId);
+    if (myRanked && myRanked.rank === 1) {
+      const parts = [
+        currentMode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain',
+        TIMER_LABELS[currentTimerSetting] || currentTimerSetting,
+        NAME_SET_LABELS[currentGenderFilter] || currentGenderFilter,
+      ];
+      if (currentMode === 'blitz') parts.push('Letter ' + blitzLetter);
+      el.highScoreBannerTitle.textContent = 'Top of the ' + parts.join(' · ') + ' board!';
+      el.highScoreBanner.classList.remove('hidden');
+    } else {
+      el.highScoreBanner.classList.add('hidden');
+    }
+
     const { newlyUnlocked } = Achievements.recordRound({
       mode: currentMode,
       timer: currentTimerSetting,
@@ -538,6 +562,27 @@
     roundChip.className = 'round-chip ' + Game.tierClass(record.rank);
     roundChip.textContent = record.name;
     el.roundList.appendChild(roundChip);
+
+    el.feedbackZone.innerHTML = '';
+    if (Achievements.isNewName(record.name)) {
+      const chip = document.createElement('span');
+      chip.className = 'feedback-chip new-name';
+
+      const nameLine = document.createElement('span');
+      nameLine.className = 'feedback-name';
+      nameLine.textContent = record.name;
+      chip.appendChild(nameLine);
+
+      const reasonLine = document.createElement('span');
+      reasonLine.className = 'feedback-reason';
+      reasonLine.textContent = 'New name!';
+      chip.appendChild(reasonLine);
+
+      el.feedbackZone.appendChild(chip);
+      setTimeout(() => {
+        if (chip.parentNode) chip.remove();
+      }, 850);
+    }
 
     updateScoreDisplay();
     renderSidebar();

@@ -228,5 +228,12 @@ const Achievements = (() => {
     return { stats: loadStats(), unlocked: loadUnlocked() };
   }
 
-  return { BADGES, recordRound, getProgress };
+  // True if this name has never been accepted in any completed round before
+  // (lifetime, across all past sessions on this device). Read-only -- lifetime
+  // stats are only actually updated at round-end via recordRound.
+  function isNewName(name) {
+    return !loadStats().uniqueNames.has(name.toLowerCase());
+  }
+
+  return { BADGES, recordRound, getProgress, isNewName };
 })();
