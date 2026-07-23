@@ -78,6 +78,7 @@
   let timerRemaining = 0;
   let timerIntervalId = null;
   let roundStartTimestamp = 0; // used to clock untimed/instant-death rounds
+  let lastRoundEntryId = null; // highlights this round's row when High Scores is opened from the summary screen
 
   let instantDeathIntervalId = null;
   let instantDeathRemaining = 0;
@@ -178,6 +179,8 @@
     showScreen('leaderboard');
   });
   el.summaryLeaderboardBtn.addEventListener('click', () => {
+    // Jump to the board for the game just played, with that round's row highlighted.
+    setLeaderboardFilters(currentMode, currentTimerSetting, currentGenderFilter, blitzLetter);
     renderLeaderboardTable();
     showScreen('leaderboard');
   });
@@ -389,7 +392,7 @@
     } else {
       el.summaryDurationStat.classList.add('hidden');
     }
-    Leaderboard.addEntry(entry);
+    lastRoundEntryId = Leaderboard.addEntry(entry).id;
 
     const { newlyUnlocked } = Achievements.recordRound({
       mode: currentMode,
@@ -630,6 +633,24 @@
   let lbSortKey = 'score';
   let lbSortDir = 'desc';
 
+  // Points the High Scores screen at a specific board (and, for Blitz, a
+  // specific starting letter) and syncs the tab UI to match -- used to jump
+  // straight to "the board for the game you just played" from the summary screen.
+  function setLeaderboardFilters(mode, timer, genderFilter, letter) {
+    lbMode = mode;
+    lbTimer = timer;
+    lbGenderFilter = genderFilter;
+    lbLetter = mode === 'blitz' && letter ? letter : 'all';
+    lbSortKey = 'score';
+    lbSortDir = 'desc';
+
+    [...el.lbModeTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbMode === lbMode));
+    [...el.lbTimerTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbTimer === lbTimer));
+    [...el.lbGenderFilter.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbGender === lbGenderFilter));
+    el.lbLetterFilter.classList.toggle('hidden', lbMode !== 'blitz');
+    [...el.lbLetterFilter.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbLetter === lbLetter));
+  }
+
   // Alphabet Blitz only: a horizontally scrollable "All" + A-Z strip that
   // filters the high-score table down to rounds that started with that letter.
   el.lbLetterFilter.innerHTML = '';
@@ -716,9 +737,14 @@
     });
 
     el.lbTableBody.innerHTML = '';
+    let mineRow = null;
     sorted.forEach((entry) => {
       const tr = document.createElement('tr');
       if (entry.rank === 1) tr.classList.add('lb-rank-first');
+      if (entry.id === lastRoundEntryId) {
+        tr.classList.add('lb-row-mine');
+        mineRow = tr;
+      }
       columns.forEach((col) => {
         const td = document.createElement('td');
         td.textContent = col.format ? col.format(entry) : entry[col.key];
@@ -729,6 +755,7 @@
 
     el.lbTable.classList.toggle('hidden', sorted.length === 0);
     el.lbEmpty.classList.toggle('hidden', sorted.length !== 0);
+    if (mineRow) mineRow.scrollIntoView({ block: 'center' });
   }
 
   // ---------- Achievements ----------

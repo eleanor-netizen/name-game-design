@@ -24,16 +24,18 @@ const Leaderboard = (() => {
     }
   }
 
+  // Returns the saved entry (including its generated id), not the full list,
+  // so callers can track "this is the row I just added" (e.g. to highlight
+  // it on the leaderboard right after a round ends).
   function addEntry(entry) {
     const entries = loadAll();
-    entries.push(
-      Object.assign(
-        { id: Date.now() + '-' + Math.random().toString(36).slice(2), timestamp: Date.now() },
-        entry
-      )
+    const saved = Object.assign(
+      { id: Date.now() + '-' + Math.random().toString(36).slice(2), timestamp: Date.now() },
+      entry
     );
+    entries.push(saved);
     saveAll(entries);
-    return entries;
+    return saved;
   }
 
   // Filtered by mode + timer (both required) and optionally by nameSet

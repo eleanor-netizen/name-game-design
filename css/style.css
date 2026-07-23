@@ -668,6 +668,8 @@ h1 {
 .lb-table th.sorted-desc::after { content: ' \2193'; }
 
 .lb-table tbody tr.lb-rank-first { background: #fffbeb; }
+.lb-table tbody tr.lb-row-mine { background: #eef2ff; box-shadow: inset 3px 0 0 var(--accent); }
+.lb-table tbody tr.lb-row-mine.lb-rank-first { background: linear-gradient(90deg, #eef2ff, #fffbeb); }
 .lb-table tbody tr:hover { background: var(--bg); }
 
 .lb-empty {
