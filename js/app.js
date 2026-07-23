@@ -68,6 +68,7 @@
     achievementsProgress: document.getElementById('achievements-progress'),
     achievementsCategories: document.getElementById('achievements-categories'),
     achievementsBackBtn: document.getElementById('achievements-back-btn'),
+    unicornOverlay: document.getElementById('unicorn-overlay'),
   };
 
   let selectedMode = 'blitz';
@@ -101,6 +102,24 @@
 
   const NAME_SET_LABELS = { all: 'All', male: 'Male', female: 'Female' };
   const TIMER_LABELS = { untimed: 'Untimed', '60': '60s', 'instant-death': 'Instant Death' };
+
+  // Easter egg: these names send a unicorn dashing across the screen when accepted.
+  const UNICORN_NAMES = new Set([
+    'betsy', 'mary', 'sam', 'samuel', 'eleanor', 'ellie', 'lynn', 'patricia',
+    'virgil', 'walter', 'walt', 'judd', 'judson', 'cate', 'catherine', 'rosie',
+    'rosalene', 'melissa', 'caleb', 'wade', 'mickey', 'cal', 'maxine', 'nancy',
+    'thomas', 'tom', 'heidi', 'isabelle', 'max', 'maxwell', 'rachel', 'sarah',
+  ]);
+
+  function maybeSpawnUnicorn(name) {
+    if (!UNICORN_NAMES.has(name.toLowerCase())) return;
+    const unicorn = document.createElement('span');
+    unicorn.className = 'unicorn-dash';
+    unicorn.textContent = '🦄';
+    unicorn.style.top = (15 + Math.random() * 55) + '%';
+    el.unicornOverlay.appendChild(unicorn);
+    unicorn.addEventListener('animationend', () => unicorn.remove());
+  }
 
   function formatDuration(totalSeconds) {
     const h = Math.floor(totalSeconds / 3600);
@@ -566,6 +585,8 @@
     roundChip.className = 'round-chip ' + Game.tierClass(record.rank);
     roundChip.textContent = record.name;
     el.roundList.appendChild(roundChip);
+
+    maybeSpawnUnicorn(record.name);
 
     el.feedbackZone.innerHTML = '';
     if (Achievements.isNewName(record.name)) {

@@ -955,6 +955,32 @@ h1 {
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* ---------- Unicorn easter egg ---------- */
+
+#unicorn-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.unicorn-dash {
+  position: absolute;
+  left: -12%;
+  font-size: 3.2rem;
+  animation: unicorn-dash 1.8s ease-in-out forwards;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+}
+
+@keyframes unicorn-dash {
+  0% { left: -12%; transform: translateY(0) scaleX(-1); }
+  25% { transform: translateY(-24px) scaleX(-1); }
+  50% { transform: translateY(0) scaleX(-1); }
+  75% { transform: translateY(-24px) scaleX(-1); }
+  100% { left: 108%; transform: translateY(0) scaleX(-1); }
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 720px) {
