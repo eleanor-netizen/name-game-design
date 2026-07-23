@@ -386,7 +386,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  animation: shake-reject 0.5s ease, fade-out 0.35s ease 0.45s forwards;
+  animation: shake-reject 0.5s ease, fade-out 0.35s ease 1.8s forwards;
 }
 
 .feedback-chip.reject .feedback-name {
@@ -409,7 +409,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  animation: fade-out 0.35s ease 0.45s forwards;
+  animation: fade-out 0.35s ease 1.8s forwards;
 }
 
 .feedback-chip.new-name .feedback-name {

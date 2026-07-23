@@ -37,6 +37,7 @@
     summaryCount: document.getElementById('summary-count'),
     summaryScore: document.getElementById('summary-score'),
     summaryRarest: document.getElementById('summary-rarest'),
+    summaryNewNames: document.getElementById('summary-new-names'),
     summaryDurationStat: document.getElementById('summary-duration-stat'),
     summaryDuration: document.getElementById('summary-duration'),
     summaryReviewCount: document.getElementById('summary-review-count'),
@@ -81,6 +82,7 @@
   let timerIntervalId = null;
   let roundStartTimestamp = 0; // used to clock untimed/instant-death rounds
   let lastRoundEntryId = null; // highlights this round's row when High Scores is opened from the summary screen
+  let newNamesThisRound = 0; // count of names accepted this round that were never played before (lifetime)
 
   let instantDeathIntervalId = null;
   let instantDeathRemaining = 0;
@@ -220,6 +222,7 @@
     el.roundList.innerHTML = '';
     el.nameInput.value = '';
     el.feedbackZone.innerHTML = '';
+    newNamesThisRound = 0;
 
     el.modeLabel.textContent =
       (mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain') + ' (' + NAME_SET_LABELS[currentGenderFilter] + ' Names)';
@@ -335,6 +338,7 @@
     el.summaryCount.textContent = roundEntries.length;
     el.summaryScore.textContent = roundScore;
     el.summaryRarest.textContent = rarest ? rarest.name : '—';
+    el.summaryNewNames.textContent = newNamesThisRound;
 
     const byScoreDesc = [...roundEntries].sort((a, b) => b.score - a.score);
     el.summaryReviewCount.textContent = byScoreDesc.length ? `(${byScoreDesc.length})` : '';
@@ -565,6 +569,7 @@
 
     el.feedbackZone.innerHTML = '';
     if (Achievements.isNewName(record.name)) {
+      newNamesThisRound++;
       const chip = document.createElement('span');
       chip.className = 'feedback-chip new-name';
 
@@ -581,7 +586,7 @@
       el.feedbackZone.appendChild(chip);
       setTimeout(() => {
         if (chip.parentNode) chip.remove();
-      }, 850);
+      }, 2200);
     }
 
     updateScoreDisplay();
@@ -611,7 +616,7 @@
     el.feedbackZone.appendChild(chip);
     setTimeout(() => {
       if (chip.parentNode) chip.remove();
-    }, 850);
+    }, 2200);
   }
 
   function updateScoreDisplay() {
