@@ -547,7 +547,7 @@
         clearInterval(instantDeathIntervalId);
         endRound({ reason: 'lost', rejectReason: result.reason });
       } else {
-        rejectFeedback(raw, result.reason);
+        rejectFeedback(raw, result.reason, blitzLetter);
       }
     } else {
       if (!chain || chain.currentBlankIndex >= chain.blanks.length) return; // between seeds, ignore
@@ -582,7 +582,7 @@
         clearInterval(instantDeathIntervalId);
         endRound({ reason: 'lost', rejectReason: result.reason });
       } else {
-        rejectFeedback(raw, result.reason);
+        rejectFeedback(raw, result.reason, requiredLetter);
       }
     }
   });
@@ -626,9 +626,10 @@
   const REJECT_REASON_TEXT = {
     used: 'Name already used',
     'not-found': 'Name not recognized',
+    'wrong-letter': 'Wrong starting letter',
   };
 
-  function rejectFeedback(raw, reason) {
+  function rejectFeedback(raw, reason, requiredLetter) {
     const chip = document.createElement('span');
     chip.className = 'feedback-chip reject';
 
@@ -639,7 +640,10 @@
 
     const reasonLine = document.createElement('span');
     reasonLine.className = 'feedback-reason';
-    reasonLine.textContent = REJECT_REASON_TEXT[reason] || REJECT_REASON_TEXT['not-found'];
+    reasonLine.textContent =
+      reason === 'wrong-letter' && requiredLetter
+        ? `Must start with "${requiredLetter.toUpperCase()}"`
+        : REJECT_REASON_TEXT[reason] || REJECT_REASON_TEXT['not-found'];
     chip.appendChild(reasonLine);
 
     el.feedbackZone.innerHTML = '';

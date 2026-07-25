@@ -117,7 +117,7 @@ const Game = (() => {
 
   // extraBlockedKeys: optional Set of dedupe keys to reject without permanently
   // marking them used (e.g. the current Name Chain seed name itself).
-  // Returns { ok: true, record } or { ok: false, reason: 'not-found' | 'used' }.
+  // Returns { ok: true, record } or { ok: false, reason: 'not-found' | 'used' | 'wrong-letter' }.
   function tryAccept(rawInput, requiredFirstLetter, extraBlockedKeys) {
     const trimmed = normalize(rawInput);
     if (!trimmed) return { ok: false, reason: 'not-found' };
@@ -128,7 +128,7 @@ const Game = (() => {
       requiredFirstLetter &&
       entry.name[0].toUpperCase() !== requiredFirstLetter.toUpperCase()
     ) {
-      return { ok: false, reason: 'not-found' };
+      return { ok: false, reason: 'wrong-letter' };
     }
     const key = dedupeKey(lower);
     if (usedKeys.has(key)) return { ok: false, reason: 'used' };
