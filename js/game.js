@@ -108,13 +108,20 @@ const Game = (() => {
     return rawInput.trim().replace(/\s+/g, ' ');
   }
 
+  // The dataset stores names without diacritics (e.g. "Jose", not "José"), so
+  // strip accents from user input before matching -- "José" and "Jose" should
+  // both hit the same stored entry.
+  function stripAccents(s) {
+    return s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  }
+
   // extraBlockedKeys: optional Set of dedupe keys to reject without permanently
   // marking them used (e.g. the current Name Chain seed name itself).
   // Returns { ok: true, record } or { ok: false, reason: 'not-found' | 'used' }.
   function tryAccept(rawInput, requiredFirstLetter, extraBlockedKeys) {
     const trimmed = normalize(rawInput);
     if (!trimmed) return { ok: false, reason: 'not-found' };
-    const lower = trimmed.toLowerCase();
+    const lower = stripAccents(trimmed).toLowerCase();
     const entry = activeNamesByLower.get(lower);
     if (!entry) return { ok: false, reason: 'not-found' };
     if (
