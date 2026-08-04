@@ -12,7 +12,6 @@
     playerNameInput: document.getElementById('player-name-input'),
     modeOptions: document.getElementById('mode-options'),
     timerOptions: document.getElementById('timer-options'),
-    genderOptions: document.getElementById('gender-options'),
     startBtn: document.getElementById('start-btn'),
     viewLeaderboardBtn: document.getElementById('view-leaderboard-btn'),
     viewAchievementsBtn: document.getElementById('view-achievements-btn'),
@@ -73,7 +72,9 @@
 
   let selectedMode = 'blitz';
   let selectedTimer = 'untimed';
-  let selectedGender = 'all';
+  // Name-set picking is disabled for now (always play with the full "all" set),
+  // but the gender tags/filter machinery is left in place to re-enable later.
+  const selectedGender = 'all';
 
   let currentMode = null;
   let currentTimerSetting = 'untimed';
@@ -197,13 +198,6 @@
     [...el.timerOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
 
-  el.genderOptions.addEventListener('click', (e) => {
-    const btn = e.target.closest('.option-btn');
-    if (!btn) return;
-    selectedGender = btn.dataset.gender;
-    [...el.genderOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
-  });
-
   el.startBtn.addEventListener('click', () => startGame(selectedMode, selectedTimer));
   el.playAgainBtn.addEventListener('click', () => startGame(currentMode, currentTimerSetting));
   el.changeModeBtn.addEventListener('click', () => showScreen('home'));
@@ -252,8 +246,7 @@
     el.feedbackZone.innerHTML = '';
     newNamesThisRound = 0;
 
-    el.modeLabel.textContent =
-      (mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain') + ' (' + NAME_SET_LABELS[currentGenderFilter] + ' Names)';
+    el.modeLabel.textContent = mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain';
 
     if (mode === 'blitz') {
       blitzLetter = Game.randomLetter();
