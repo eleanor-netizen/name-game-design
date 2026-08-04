@@ -422,9 +422,9 @@
     lastRoundEntryId = Leaderboard.addEntry(entry).id;
 
     // Did this round just take #1 on the exact board it belongs to (the same
-    // board "High Scores" jumps to from this screen -- mode/timer/name set,
-    // plus starting letter for Blitz)?
-    let boardEntries = Leaderboard.getFiltered(entry.mode, entry.timer, entry.nameSet);
+    // board "High Scores" jumps to from this screen -- mode/timer, all name
+    // sets combined, plus starting letter for Blitz)?
+    let boardEntries = Leaderboard.getFiltered(entry.mode, entry.timer, 'any');
     if (entry.mode === 'blitz') {
       boardEntries = boardEntries.filter((e) => e.startLetter === entry.startLetter);
     }
@@ -433,7 +433,6 @@
       const parts = [
         currentMode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain',
         TIMER_LABELS[currentTimerSetting] || currentTimerSetting,
-        NAME_SET_LABELS[currentGenderFilter] || currentGenderFilter,
       ];
       if (currentMode === 'blitz') parts.push('Letter ' + blitzLetter);
       el.highScoreBannerTitle.textContent = 'Top of the ' + parts.join(' · ') + ' board!';
