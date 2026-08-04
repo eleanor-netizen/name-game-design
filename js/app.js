@@ -56,7 +56,6 @@
 
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
-    lbGenderFilter: document.getElementById('lb-gender-filter'),
     lbLetterFilter: document.getElementById('lb-letter-filter'),
     lbTableHead: document.getElementById('lb-table-head'),
     lbTableBody: document.getElementById('lb-table-body'),
@@ -207,7 +206,7 @@
   });
   el.summaryLeaderboardBtn.addEventListener('click', () => {
     // Jump to the board for the game just played, with that round's row highlighted.
-    setLeaderboardFilters(currentMode, currentTimerSetting, currentGenderFilter, blitzLetter);
+    setLeaderboardFilters(currentMode, currentTimerSetting, blitzLetter);
     renderLeaderboardTable();
     showScreen('leaderboard');
   });
@@ -659,24 +658,15 @@
 
   // ---------- Leaderboard ----------
 
-  // Columns depend on mode (blitz vs chain fields), whether the "Any Name Set"
-  // filter is active (adds a Name Set column so rows stay distinguishable),
-  // and whether this is the Untimed board (adds a Time Played column).
-  function getColumns(mode, timer, genderFilter) {
+  // Columns depend on mode (blitz vs chain fields) and whether this is the
+  // Untimed board (adds a Time Played column). All name sets are combined
+  // into one board, with no per-entry name-set breakdown shown.
+  function getColumns(mode, timer) {
     const columns = [
       { key: 'rank', label: '#', sortable: false, format: (e) => '#' + e.rank },
       { key: 'playerName', label: 'Player', sortable: true, defaultDir: 'asc' },
+      { key: 'score', label: 'Score', sortable: true, defaultDir: 'desc' },
     ];
-    if (genderFilter === 'any') {
-      columns.push({
-        key: 'nameSet',
-        label: 'Name Set',
-        sortable: true,
-        defaultDir: 'asc',
-        format: (e) => NAME_SET_LABELS[e.nameSet] || e.nameSet,
-      });
-    }
-    columns.push({ key: 'score', label: 'Score', sortable: true, defaultDir: 'desc' });
     if (mode === 'blitz') {
       columns.push({ key: 'startLetter', label: 'Starting Letter', sortable: true, defaultDir: 'asc' });
     } else {
@@ -705,7 +695,6 @@
 
   let lbMode = 'blitz';
   let lbTimer = 'untimed';
-  let lbGenderFilter = 'any';
   let lbLetter = 'all';
   let lbSortKey = 'score';
   let lbSortDir = 'desc';
@@ -713,17 +702,15 @@
   // Points the High Scores screen at a specific board (and, for Blitz, a
   // specific starting letter) and syncs the tab UI to match -- used to jump
   // straight to "the board for the game you just played" from the summary screen.
-  function setLeaderboardFilters(mode, timer, genderFilter, letter) {
+  function setLeaderboardFilters(mode, timer, letter) {
     lbMode = mode;
     lbTimer = timer;
-    lbGenderFilter = genderFilter;
     lbLetter = mode === 'blitz' && letter ? letter : 'all';
     lbSortKey = 'score';
     lbSortDir = 'desc';
 
     [...el.lbModeTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbMode === lbMode));
     [...el.lbTimerTabs.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbTimer === lbTimer));
-    [...el.lbGenderFilter.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbGender === lbGenderFilter));
     el.lbLetterFilter.classList.toggle('hidden', lbMode !== 'blitz');
     [...el.lbLetterFilter.children].forEach((c) => c.classList.toggle('selected', c.dataset.lbLetter === lbLetter));
   }
@@ -774,19 +761,9 @@
     renderLeaderboardTable();
   });
 
-  el.lbGenderFilter.addEventListener('click', (e) => {
-    const btn = e.target.closest('.tab-btn');
-    if (!btn) return;
-    lbGenderFilter = btn.dataset.lbGender;
-    [...el.lbGenderFilter.children].forEach((c) => c.classList.toggle('selected', c === btn));
-    lbSortKey = 'score';
-    lbSortDir = 'desc';
-    renderLeaderboardTable();
-  });
-
   function renderLeaderboardTable() {
-    const columns = getColumns(lbMode, lbTimer, lbGenderFilter);
-    let entries = Leaderboard.getFiltered(lbMode, lbTimer, lbGenderFilter);
+    const columns = getColumns(lbMode, lbTimer);
+    let entries = Leaderboard.getFiltered(lbMode, lbTimer, 'any');
     if (lbMode === 'blitz' && lbLetter !== 'all') {
       entries = entries.filter((e) => e.startLetter === lbLetter);
     }
