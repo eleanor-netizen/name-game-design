@@ -74,6 +74,7 @@
     progressUniqueCount: document.getElementById('progress-unique-count'),
     progressOverallLabel: document.getElementById('progress-overall-label'),
     progressOverallFill: document.getElementById('progress-overall-fill'),
+    progressSortTabs: document.getElementById('progress-sort-tabs'),
     progressLetterList: document.getElementById('progress-letter-list'),
     progressBackBtn: document.getElementById('progress-back-btn'),
   };
@@ -966,6 +967,28 @@
     return totals;
   }
 
+  let progressSortKey = 'letter';
+  let progressSortDir = 'asc';
+  const PROGRESS_SORT_DEFAULT_DIR = { letter: 'asc', pct: 'desc', played: 'desc', total: 'desc' };
+
+  el.progressSortTabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    const key = btn.dataset.progressSort;
+    if (progressSortKey === key) {
+      progressSortDir = progressSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      progressSortKey = key;
+      progressSortDir = PROGRESS_SORT_DEFAULT_DIR[key];
+    }
+    [...el.progressSortTabs.children].forEach((c) => {
+      c.classList.toggle('selected', c === btn);
+      c.classList.toggle('sorted-asc', c === btn && progressSortDir === 'asc');
+      c.classList.toggle('sorted-desc', c === btn && progressSortDir === 'desc');
+    });
+    renderProgressScreen();
+  });
+
   function renderProgressScreen() {
     const { stats } = Achievements.getProgress();
     const playedByLetter = {};
@@ -985,11 +1008,23 @@
       `${totalPlayed.toLocaleString()} / ${totalNames.toLocaleString()} names played`;
     el.progressOverallFill.style.width = Math.min(100, overallPct) + '%';
 
-    el.progressLetterList.innerHTML = '';
-    ALPHABET.forEach((letter) => {
+    const rows = ALPHABET.map((letter) => {
       const played = playedByLetter[letter];
       const total = totals[letter];
-      const pct = total ? (played / total) * 100 : 0;
+      return { letter, played, total, pct: total ? played / total : 0 };
+    });
+    rows.sort((a, b) => {
+      const av = progressSortKey === 'letter' ? a.letter : a[progressSortKey];
+      const bv = progressSortKey === 'letter' ? b.letter : b[progressSortKey];
+      if (av < bv) return -1;
+      if (av > bv) return 1;
+      return 0;
+    });
+    if (progressSortDir === 'desc') rows.reverse();
+
+    el.progressLetterList.innerHTML = '';
+    rows.forEach(({ letter, played, total, pct: fraction }) => {
+      const pct = fraction * 100;
 
       const row = document.createElement('div');
       row.className = 'progress-row';
