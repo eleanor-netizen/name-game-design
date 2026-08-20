@@ -62,6 +62,7 @@
       <button id="start-btn" class="primary-btn">Start Game</button>
       <button id="view-leaderboard-btn" class="secondary-btn">High Scores</button>
       <button id="view-achievements-btn" class="secondary-btn">Achievements</button>
+      <button id="view-progress-btn" class="secondary-btn">Progress</button>
     </div>
   </section>
 
@@ -171,6 +172,7 @@
       <button id="change-mode-btn" class="secondary-btn">Change Mode</button>
       <button id="summary-leaderboard-btn" class="secondary-btn">High Scores</button>
       <button id="summary-achievements-btn" class="secondary-btn">Achievements</button>
+      <button id="summary-progress-btn" class="secondary-btn">Progress</button>
     </div>
   </section>
 
@@ -216,6 +218,27 @@
       <p class="achievements-progress" id="achievements-progress"></p>
       <div class="achievements-categories" id="achievements-categories"></div>
       <button id="achievements-back-btn" class="secondary-btn">Back</button>
+    </div>
+  </section>
+
+  <!-- PROGRESS SCREEN -->
+  <section id="screen-progress" class="screen hidden">
+    <div class="leaderboard-card">
+      <h1>Progress</h1>
+
+      <div class="summary-stats">
+        <div class="stat">
+          <span class="stat-value" id="progress-unique-count">0</span>
+          <span class="stat-label">Unique Names Played</span>
+        </div>
+      </div>
+
+      <p class="achievements-progress" id="progress-overall-label"></p>
+      <div class="progress-overall-track">
+        <div class="progress-overall-fill" id="progress-overall-fill"></div>
+      </div>
+      <div class="progress-letter-list" id="progress-letter-list"></div>
+      <button id="progress-back-btn" class="secondary-btn">Back</button>
     </div>
   </section>
 

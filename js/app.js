@@ -6,6 +6,7 @@
     summary: document.getElementById('screen-summary'),
     leaderboard: document.getElementById('screen-leaderboard'),
     achievements: document.getElementById('screen-achievements'),
+    progress: document.getElementById('screen-progress'),
   };
 
   const el = {
@@ -15,6 +16,7 @@
     startBtn: document.getElementById('start-btn'),
     viewLeaderboardBtn: document.getElementById('view-leaderboard-btn'),
     viewAchievementsBtn: document.getElementById('view-achievements-btn'),
+    viewProgressBtn: document.getElementById('view-progress-btn'),
 
     modeLabel: document.getElementById('mode-label'),
     promptDisplay: document.getElementById('prompt-display'),
@@ -53,6 +55,7 @@
     changeModeBtn: document.getElementById('change-mode-btn'),
     summaryLeaderboardBtn: document.getElementById('summary-leaderboard-btn'),
     summaryAchievementsBtn: document.getElementById('summary-achievements-btn'),
+    summaryProgressBtn: document.getElementById('summary-progress-btn'),
 
     lbModeTabs: document.getElementById('lb-mode-tabs'),
     lbTimerTabs: document.getElementById('lb-timer-tabs'),
@@ -67,6 +70,12 @@
     achievementsCategories: document.getElementById('achievements-categories'),
     achievementsBackBtn: document.getElementById('achievements-back-btn'),
     unicornOverlay: document.getElementById('unicorn-overlay'),
+
+    progressUniqueCount: document.getElementById('progress-unique-count'),
+    progressOverallLabel: document.getElementById('progress-overall-label'),
+    progressOverallFill: document.getElementById('progress-overall-fill'),
+    progressLetterList: document.getElementById('progress-letter-list'),
+    progressBackBtn: document.getElementById('progress-back-btn'),
   };
 
   let selectedMode = 'blitz';
@@ -224,6 +233,15 @@
     renderAchievementsScreen();
     showScreen('achievements');
   });
+  el.viewProgressBtn.addEventListener('click', () => {
+    renderProgressScreen();
+    showScreen('progress');
+  });
+  el.summaryProgressBtn.addEventListener('click', () => {
+    renderProgressScreen();
+    showScreen('progress');
+  });
+  el.progressBackBtn.addEventListener('click', () => showScreen('home'));
 
   // ---------- Round lifecycle ----------
   // Each Start Game / Play Again begins a brand new play session: score and
@@ -927,6 +945,77 @@
 
       section.appendChild(grid);
       el.achievementsCategories.appendChild(section);
+    });
+  }
+
+  // ---------- Progress ----------
+
+  const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  // Total names in the dataset per starting letter -- static, computed once.
+  let letterTotalsCache = null;
+  function getLetterTotals() {
+    if (letterTotalsCache) return letterTotalsCache;
+    const totals = {};
+    ALPHABET.forEach((l) => (totals[l] = 0));
+    NAMES_DATA.forEach((e) => {
+      const letter = e.name[0].toUpperCase();
+      if (totals[letter] !== undefined) totals[letter]++;
+    });
+    letterTotalsCache = totals;
+    return totals;
+  }
+
+  function renderProgressScreen() {
+    const { stats } = Achievements.getProgress();
+    const playedByLetter = {};
+    ALPHABET.forEach((l) => (playedByLetter[l] = 0));
+    stats.uniqueNames.forEach((lowerName) => {
+      const letter = lowerName[0].toUpperCase();
+      if (playedByLetter[letter] !== undefined) playedByLetter[letter]++;
+    });
+
+    const totals = getLetterTotals();
+    const totalPlayed = stats.uniqueNames.size;
+    const totalNames = ALPHABET.reduce((sum, l) => sum + totals[l], 0);
+    const overallPct = totalNames ? (totalPlayed / totalNames) * 100 : 0;
+
+    el.progressUniqueCount.textContent = totalPlayed.toLocaleString();
+    el.progressOverallLabel.textContent =
+      `${totalPlayed.toLocaleString()} / ${totalNames.toLocaleString()} names played`;
+    el.progressOverallFill.style.width = Math.min(100, overallPct) + '%';
+
+    el.progressLetterList.innerHTML = '';
+    ALPHABET.forEach((letter) => {
+      const played = playedByLetter[letter];
+      const total = totals[letter];
+      const pct = total ? (played / total) * 100 : 0;
+
+      const row = document.createElement('div');
+      row.className = 'progress-row';
+
+      const badge = document.createElement('span');
+      badge.className = 'letter-badge';
+      badge.textContent = letter;
+      row.appendChild(badge);
+
+      const barWrap = document.createElement('div');
+      barWrap.className = 'progress-row-bar';
+      const track = document.createElement('div');
+      track.className = 'progress-row-track';
+      const fill = document.createElement('div');
+      fill.className = 'progress-row-fill';
+      fill.style.width = Math.min(100, pct) + '%';
+      track.appendChild(fill);
+      barWrap.appendChild(track);
+      row.appendChild(barWrap);
+
+      const label = document.createElement('span');
+      label.className = 'progress-row-label';
+      label.textContent = `${played.toLocaleString()} / ${total.toLocaleString()}`;
+      row.appendChild(label);
+
+      el.progressLetterList.appendChild(row);
     });
   }
 })();
