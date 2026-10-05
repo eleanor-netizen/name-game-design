@@ -12,6 +12,9 @@
   const el = {
     playerNameInput: document.getElementById('player-name-input'),
     modeOptions: document.getElementById('mode-options'),
+    blitzLetterGroup: document.getElementById('blitz-letter-group'),
+    blitzLetterModeOptions: document.getElementById('blitz-letter-mode-options'),
+    blitzLetterPicker: document.getElementById('blitz-letter-picker'),
     timerOptions: document.getElementById('timer-options'),
     startBtn: document.getElementById('start-btn'),
     viewLeaderboardBtn: document.getElementById('view-leaderboard-btn'),
@@ -80,6 +83,8 @@
   };
 
   let selectedMode = 'blitz';
+  let selectedLetterMode = 'random'; // 'random' | 'choose' -- Alphabet Blitz only
+  let selectedBlitzLetter = 'A';
   let selectedTimer = 'untimed';
   // Name-set picking is disabled for now (always play with the full "all" set),
   // but the gender tags/filter machinery is left in place to re-enable later.
@@ -198,6 +203,33 @@
     if (!btn) return;
     selectedMode = btn.dataset.mode;
     [...el.modeOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    el.blitzLetterGroup.classList.toggle('hidden', selectedMode !== 'blitz');
+  });
+
+  // Alphabet Blitz only: "Random" picks a fresh letter each round (the
+  // existing behavior); "Choose" reveals an A-Z strip to pin one letter.
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((letter) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab-btn lb-letter-btn' + (letter === selectedBlitzLetter ? ' selected' : '');
+    btn.dataset.blitzLetter = letter;
+    btn.textContent = letter;
+    el.blitzLetterPicker.appendChild(btn);
+  });
+
+  el.blitzLetterModeOptions.addEventListener('click', (e) => {
+    const btn = e.target.closest('.option-btn');
+    if (!btn) return;
+    selectedLetterMode = btn.dataset.letterMode;
+    [...el.blitzLetterModeOptions.children].forEach((c) => c.classList.toggle('selected', c === btn));
+    el.blitzLetterPicker.classList.toggle('hidden', selectedLetterMode !== 'choose');
+  });
+
+  el.blitzLetterPicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('.lb-letter-btn');
+    if (!btn) return;
+    selectedBlitzLetter = btn.dataset.blitzLetter;
+    [...el.blitzLetterPicker.children].forEach((c) => c.classList.toggle('selected', c === btn));
   });
 
   el.timerOptions.addEventListener('click', (e) => {
@@ -267,7 +299,7 @@
     el.modeLabel.textContent = mode === 'blitz' ? 'Alphabet Blitz' : 'Name Chain';
 
     if (mode === 'blitz') {
-      blitzLetter = Game.randomLetter();
+      blitzLetter = selectedLetterMode === 'choose' ? selectedBlitzLetter : Game.randomLetter();
       renderBlitzPrompt();
       if (checkRemainingOrEnd(blitzLetter)) return; // pool already empty (pathological edge case)
     } else {
