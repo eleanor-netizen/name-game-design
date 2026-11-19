@@ -334,7 +334,6 @@
       timerRemaining = parseInt(currentTimerSetting, 10);
       el.timerValue.textContent = timerRemaining;
       el.timerDisplay.classList.remove('hidden');
-      el.endRoundBtn.classList.add('hidden');
       timerIntervalId = setInterval(tickTimer, 1000);
     }
 
